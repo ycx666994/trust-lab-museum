@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>展品 08 · 刷分机器人 — AI 失效博物馆</title>
+<style>
+:root{
+  --bg:#f5f1e7; --panel:#fffdf8; --panel2:#f9f5ec; --line:#e3dccd;
+  --tx:#2b2822; --tx2:#6d6659; --tx3:#9d9486;
+  --cy:#0e7f9c; --gn:#1c8a5c; --am:#b0741c; --rd:#c1473e; --pu:#7b4fd0;
+  --mono:"Consolas","ui-monospace","SF Mono",monospace;
+  --ac:var(--pu); --acsoft:rgba(123,79,208,.1); --acline:rgba(123,79,208,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background-image:radial-gradient(ellipse 900px 480px at 50% -90px,rgba(123,79,208,.05),transparent)}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 20px 70px}
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.topbar .back{color:var(--tx2);text-decoration:none;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:7px 12px;transition:all .15s}
+.topbar .back:hover{color:var(--gn);border-color:var(--acline)}
+.topbar h1{font-size:21px;letter-spacing:1px}
+.topbar h1 .no{font-family:var(--mono);font-size:12px;color:var(--ac);border:1px solid var(--acline);border-radius:6px;padding:2px 8px;margin-right:10px;vertical-align:3px}
+.topbar .claim{margin-left:auto;font-size:12px;color:var(--tx2);font-family:var(--mono)}
+.tabs{display:flex;gap:10px;margin-bottom:20px;position:sticky;top:0;z-index:10;background:linear-gradient(180deg,var(--bg) 82%,transparent);padding:8px 0}
+.tab{flex:1;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:11px 16px;background:var(--panel);transition:all .18s;text-align:left}
+.tab .tn{font-family:var(--mono);font-size:10.5px;color:var(--tx3);display:block;margin-bottom:3px}
+.tab .tt{font-size:14.5px;font-weight:700;color:var(--tx2)}
+.tab .td{font-size:11px;color:var(--tx3);margin-top:2px}
+.tab:hover{border-color:#2c3849}
+.tab.on{border-color:var(--acline);background:linear-gradient(180deg,var(--acsoft),var(--panel))}
+.tab.on .tt{color:var(--tx)} .tab.on .tn{color:var(--ac)}
+.layer{display:none;animation:fadein .3s ease}
+.layer.on{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin-bottom:14px}
+.card h3{font-size:15px;margin-bottom:10px;letter-spacing:.5px}
+.card h3 .hl{color:var(--gn)}
+.card p{font-size:13px;line-height:1.85;color:var(--tx2)}
+.card p b{color:var(--tx)}
+.term{background:#fbf7ee;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:13px;line-height:1.9;min-height:140px;color:#3a362e;white-space:pre-wrap;word-break:break-all}
+.term .g{color:var(--gn)}
+.term .caret{display:inline-block;width:7px;height:14px;background:var(--ac);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.term .prompt-echo{color:var(--tx3)}
+.fmeta{font-family:var(--mono);font-size:10.5px;color:var(--tx3);margin-top:6px}
+.nextbtn{cursor:pointer;border:1px solid var(--acline);background:var(--acsoft);color:var(--ac);border-radius:9px;padding:10px 20px;font-size:13.5px;font-family:inherit;transition:all .15s}
+.nextbtn:hover{background:rgba(28,138,92,.2);box-shadow:0 0 16px rgba(28,138,92,.25)}
+.nextbtn.ghost{border-color:var(--line);background:transparent;color:var(--tx2)}
+.nextbtn.ghost:hover{color:var(--tx);box-shadow:none}
+.nextbtn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.tctrl{display:flex;gap:10px;flex-wrap:wrap}
+.toy{display:grid;grid-template-columns:320px 1fr;gap:16px}
+@media(max-width:900px){.toy{grid-template-columns:1fr}}
+.ctl{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+.row{display:flex;align-items:center;gap:10px;font-size:12.5px;margin-bottom:13px}
+.row label{color:var(--tx2);white-space:nowrap;min-width:86px}
+.row output{font-family:var(--mono);color:var(--ac);min-width:46px;text-align:right}
+input[type=range]{flex:1;appearance:none;height:4px;border-radius:3px;background:linear-gradient(90deg,var(--ac) var(--fill,50%),#232c3a var(--fill,50%));outline:none}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border-radius:50%;background:#e6f9f1;border:2px solid var(--ac);cursor:pointer;box-shadow:0 0 8px rgba(28,138,92,.5)}
+select{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--tx);padding:8px 10px;font-size:12.5px;outline:none;font-family:inherit}
+.verdict{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:13px;margin-top:12px}
+.lamp{width:11px;height:11px;border-radius:50%;background:#2c3849;flex:none}
+.lamp.g{background:var(--gn);box-shadow:0 0 10px var(--gn)}
+.lamp.a{background:var(--am);box-shadow:0 0 10px var(--am)}
+.lamp.r{background:var(--rd);box-shadow:0 0 10px var(--rd)}
+.zwrap{display:flex;align-items:center;gap:16px;margin-top:12px}
+.znum b{font-size:25px;color:var(--gn)}
+.znum span{display:block;font-size:11px;color:var(--tx2);margin-top:2px}
+.dres{flex:1;display:flex;flex-direction:column;gap:8px}
+.dres .kv{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--tx2)}
+.dres .kv b{color:var(--tx)}
+/* 硬核 */
+.hard2{display:grid;grid-template-columns:300px 1fr;gap:16px}
+@media(max-width:900px){.hard2{grid-template-columns:1fr}}
+.metric{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--tx2);padding:7px 0;border-bottom:1px dashed var(--line)}
+.metric:last-child{border:none}
+.metric b{font-family:var(--mono);font-size:14px;color:var(--tx)}
+.metric b.g{color:var(--gn)} .metric b.a{color:var(--am)}
+.pbar{height:8px;border-radius:4px;background:#e3dccd;overflow:hidden;margin-top:10px}
+.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22996b,var(--gn));transition:width .2s}
+.wmtbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;margin-top:10px}
+.wmtbl th{color:var(--tx3);font-weight:400;text-align:right;padding:5px 8px;border-bottom:1px solid var(--line)}
+.wmtbl td{color:var(--tx2);text-align:right;padding:5px 8px;border-bottom:1px dashed #e3dccd}
+.wmtbl th:first-child,.wmtbl td:first-child{text-align:left}
+.wmtbl td b{color:var(--tx)}
+.legend{font-size:11px;color:var(--tx3);display:flex;gap:16px;margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:2px}
+.quiz .opt{display:block;width:100%;text-align:left;margin-top:9px;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--tx);border-radius:9px;padding:11px 15px;font-size:13px;font-family:inherit;transition:all .15s}
+.quiz .opt:hover{border-color:var(--acline)}
+.quiz .opt.ok{border-color:var(--gn);background:rgba(28,138,92,.1);color:var(--gn)}
+.quiz .opt.bad{border-color:var(--rd);background:rgba(193,71,62,.08);color:var(--rd);opacity:.8}
+.quiz .res{margin-top:12px;font-size:13px;display:none;align-items:center;gap:10px}
+.quiz .res.on{display:flex}
+.confetti{position:relative;height:0}
+.confetti i{position:absolute;width:7px;height:7px;border-radius:2px;opacity:0;animation:burst 1s ease-out forwards}
+@keyframes burst{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(240deg)}}
+footer{margin-top:26px;border-top:1px solid var(--line);padding-top:14px;font-size:11.5px;color:var(--tx3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+footer a{color:var(--tx2);text-decoration:none;border-bottom:1px dashed var(--tx3)}
+footer a:hover{color:var(--cy)}
+</style>
+<style>
+/* ============================================================
+   tl-room.css — 展品页「舱室外壳」：固定视口仪表台
+   由 build.sh 注入到 8 个展品页。每页通过 window.TLROOM 配置：
+   { room:"房名", accent:"#hex", rail:"top|side|dock", anim:"zoom|split|flip|wipe|iris|flash|slide|conveyor" }
+   ============================================================ */
+
+/* ---- 视口锁定：页面不滚，层内滚 ---- */
+body.tlroom{height:100dvh;overflow:hidden}
+.tlroom .wrap{height:100dvh;display:flex;flex-direction:column;max-width:1280px;margin:0 auto;padding:10px 22px 14px;overflow-x:clip}
+
+/* ---- 顶栏收紧 ---- */
+.tlroom .topbar{flex:none;margin:0 0 10px;padding:9px 0 8px;border-bottom:1px solid var(--line)}
+.tlroom .topbar h1{font-size:17px}
+.tlroom .topbar .claim{font-size:11.5px}
+
+/* ---- 活动层填满剩余空间，内部滚动（带主题色滚动条） ---- */
+.tlroom .layer.on{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:14px 10px 20px 2px;animation-duration:.45s;animation-timing-function:cubic-bezier(.25,1,.4,1);
+  scrollbar-width:thin;scrollbar-color:var(--room-accent) transparent}
+.tlroom .layer.on::-webkit-scrollbar{width:8px}
+.tlroom .layer.on::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--room-accent) 45%,transparent);border-radius:4px}
+.tlroom .layer.on::-webkit-scrollbar-thumb:hover{background:var(--room-accent)}
+.tlroom .layer.on::-webkit-scrollbar-track{background:transparent}
+
+/* ---- 入场：卡片错峰浮起 ---- */
+.tlroom .layer.on .card{animation:roomUp .5s cubic-bezier(.2,.9,.3,1) both}
+.tlroom .layer.on .card:nth-child(2){animation-delay:.06s}
+.tlroom .layer.on .card:nth-child(3){animation-delay:.12s}
+.tlroom .layer.on .card:nth-child(4){animation-delay:.18s}
+.tlroom .layer.on .card:nth-child(5){animation-delay:.24s}
+.tlroom .layer.on .card:nth-child(n+6){animation-delay:.3s}
+@keyframes roomUp{from{opacity:0;transform:translateY(16px)}}
+
+/* ---- 8 种层切换动画（每展品一种） ---- */
+@keyframes roomZoom{from{opacity:0;transform:scale(.955)}}
+@keyframes roomSplit{from{opacity:.4;clip-path:inset(0 46% 0 46%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes roomFlip{from{opacity:0;transform:perspective(900px) rotateX(13deg) translateY(10px)}}
+@keyframes roomWipe{from{opacity:.5;clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes roomIris{from{clip-path:circle(0% at 50% 38%);opacity:.6}to{clip-path:circle(78% at 50% 45%)}}
+@keyframes roomFlash{0%{opacity:0;filter:brightness(2.4) contrast(1.2)}55%{filter:brightness(1.35)}100%{opacity:1;filter:none}}
+@keyframes roomSlide{from{opacity:0;transform:translateX(72px)}}
+@keyframes roomConveyor{from{opacity:0;transform:translateX(110px) skewX(-4deg)}60%{transform:translateX(-8px) skewX(.4deg)}to{opacity:1;transform:none}}
+body[data-anim="zoom"] .layer.on{animation-name:roomZoom}
+body[data-anim="split"] .layer.on{animation-name:roomSplit}
+body[data-anim="flip"] .layer.on{animation-name:roomFlip}
+body[data-anim="wipe"] .layer.on{animation-name:roomWipe}
+body[data-anim="iris"] .layer.on{animation-name:roomIris}
+body[data-anim="flash"] .layer.on{animation-name:roomFlash}
+body[data-anim="slide"] .layer.on{animation-name:roomSlide}
+body[data-anim="conveyor"] .layer.on{animation-name:roomConveyor}
+
+/* ---- 层导航 rail · top（默认：顶部窄条控制带） ---- */
+body.tlroom .tabs{flex:none;position:static;margin:0 0 10px;padding:6px;gap:8px;
+  background:rgba(255,253,248,.72);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+body.tlroom .tab{padding:8px 14px;border-radius:9px}
+body.tlroom .tab .td{display:none}
+body.tlroom .tab .tn{font-size:9px}
+body.tlroom .tab .tt{font-size:12.5px}
+
+/* ---- rail · side：左侧竖排层塔 ---- */
+body[data-rail="side"] .tabs{position:fixed;left:0;top:72px;bottom:52px;width:176px;flex-direction:column;justify-content:center;
+  gap:9px;margin:0;padding:12px 11px;background:transparent;border:none;backdrop-filter:none;z-index:20}
+body[data-rail="side"] .tab{flex:none;padding:11px 12px}
+body[data-rail="side"] .tab .td{display:block;font-size:9.5px;margin-top:2px}
+body[data-rail="side"] .wrap{padding-left:206px}
+body[data-rail="side"] .topbar{margin-left:-184px;margin-right:0}
+body[data-rail="side"] .topbar .back{flex:none}
+
+/* ---- rail · dock：底部悬浮控制坞 ----
+   注意：各展品基础样式 .tabs 带 sticky top:0，fixed 定位必须显式 top:auto，
+   否则 top:0 + bottom:14px 会把坞拉成全屏高的遮罩面板 */
+body[data-rail="dock"] .tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;top:auto;width:min(860px,92vw);
+  margin:0;padding:7px;background:rgba(255,253,248,.92);border:1px solid var(--line);border-radius:14px;
+  backdrop-filter:blur(10px);box-shadow:0 18px 44px -18px rgba(120,104,80,.30);z-index:20}
+body[data-rail="dock"] .wrap{padding-bottom:92px}
+body[data-rail="dock"] .rguide{bottom:86px}   /* 导游气泡抬高，避开底部坞 */
+
+/* ---- 右下角房号 HUD ---- */
+.roomhud{position:fixed;right:16px;bottom:14px;z-index:40;display:flex;align-items:center;gap:10px;
+  background:rgba(255,253,248,.92);border:1px solid var(--line);border-left:3px solid var(--room-accent,#57c7ff);
+  border-radius:10px;padding:7px 12px;font-size:11px;color:var(--tx2);backdrop-filter:blur(8px)}
+.roomhud b{color:var(--room-accent,#57c7ff);font-size:11.5px;letter-spacing:1px;white-space:nowrap}
+.roomhud .hl-dots{display:flex;gap:4px}
+.roomhud .hl-dots i{width:6px;height:6px;border-radius:50%;background:#2c3849;transition:all .3s}
+.roomhud .hl-dots i.on{background:var(--room-accent,#57c7ff);box-shadow:0 0 8px var(--room-accent,#57c7ff)}
+.roomhud .hl-step{font-family:Consolas,ui-monospace,monospace;font-size:10px;white-space:nowrap}
+body[data-rail="dock"] .roomhud{bottom:auto;top:14px}
+
+/* ---- 窄屏降级：恢复整页滚动 ---- */
+@media(max-width:760px){
+  body.tlroom{height:auto;overflow:auto}
+  .tlroom .wrap{height:auto;padding:10px 14px 24px}
+  .tlroom .layer.on{overflow:visible}
+  body[data-rail="side"] .tabs{position:static;width:auto;flex-direction:row}
+  body[data-rail="side"] .wrap{padding-left:14px}
+  body[data-rail="side"] .topbar{margin-left:0}
+  body[data-rail="dock"] .tabs{position:static;width:auto;transform:none;margin-bottom:10px}
+  body[data-rail="dock"] .wrap{padding-bottom:20px}
+  .roomhud{display:none}
+}
+
+/* ---- 导游气泡（贯穿全程） ---- */
+.rguide{position:fixed;left:16px;bottom:16px;z-index:60;width:min(330px,calc(100vw - 32px));
+  background:linear-gradient(160deg,rgba(255,253,248,.94),rgba(247,242,231,.90));
+  border:1px solid color-mix(in srgb,var(--room-accent) 38%,transparent);
+  border-radius:12px;padding:9px 11px;backdrop-filter:blur(12px) saturate(1.2);
+  -webkit-backdrop-filter:blur(12px) saturate(1.2);
+  box-shadow:0 10px 34px rgba(120,104,80,.20);animation:rgIn .5s cubic-bezier(.3,1.3,.6,1)}
+@keyframes rgIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rg-face{display:flex;align-items:center;gap:6px}
+.rgf{width:26px;height:26px;border-radius:8px;border:1px solid rgba(43,40,34,.14);
+  background:rgba(43,40,34,.04);font-size:14px;cursor:pointer;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:.2s;flex:none}
+.rgf:hover{transform:translateY(-2px);border-color:var(--room-accent)}
+.rgf.on{background:color-mix(in srgb,var(--room-accent) 22%,transparent);
+  border-color:var(--room-accent);box-shadow:0 0 10px color-mix(in srgb,var(--room-accent) 45%,transparent)}
+.rg-who{font-size:10.5px;color:rgba(43,40,34,.62);margin-left:3px;flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-fold{width:20px;height:20px;border-radius:6px;border:1px solid rgba(43,40,34,.14);
+  background:rgba(43,40,34,.04);color:rgba(43,40,34,.55);cursor:pointer;font-size:12px;line-height:1;flex:none}
+.rg-say{margin-top:7px;font-size:12px;line-height:1.65;color:rgba(43,40,34,.86)}
+.rguide.fold .rg-say{display:none}
+@media (max-width:760px){.rguide{display:none}}
+
+/* ---- 内嵌工作台：工具栏 + 影院全屏（硬核层 iframe）---- */
+.fbar{display:flex;align-items:center;gap:9px;margin-top:10px;min-height:40px}
+.fbar[hidden]{display:none}
+.fbar .fbar-t{font-family:var(--mono);font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
+.fbar .fbar-tip{margin-left:auto;font-size:10.5px;color:var(--tx3);white-space:nowrap}
+.fbtn{cursor:pointer;border:1px solid color-mix(in srgb,var(--ac) 40%,transparent);background:color-mix(in srgb,var(--ac) 12%,transparent);color:var(--ac);border-radius:8px;padding:8px 14px;font-size:12px;font-family:inherit;transition:all .15s;white-space:nowrap;flex:none}
+.fbtn:hover{filter:brightness(1.28)}
+.fbtn[hidden]{display:none}
+#frameBox.fs{position:fixed!important;inset:40px 0 0 0;z-index:99997;width:100vw;max-width:none;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:#f5f1e7;display:block!important}
+#frameBox.fs iframe{width:100%!important;height:100%!important}
+#frameBar.fs{position:fixed;top:0;left:0;right:0;z-index:99998;margin:0;padding:0 12px;min-height:40px;background:rgba(255,253,248,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(10px);flex-wrap:nowrap;overflow:hidden}
+#frameBar.fs .fbar-t,#frameBar.fs .fbar-tip{display:none}
+body.tl-fslock{overflow:hidden!important}
+</style>
+</head>
+<body>
+<style>
+.g8{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.g8 .gwrap{text-align:center}
+.g8 svg{background:#fbf7ee;border:1px solid var(--line);border-radius:10px}
+.meters{display:flex;flex-direction:column;gap:10px;min-width:190px;flex:1}
+.meter .ml{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:4px}
+.meter .ml b{font-family:var(--mono);color:var(--tx)}
+.meter .bar{height:12px;border-radius:6px;background:#e3dccd;overflow:hidden}
+.meter .bar i{display:block;height:100%;transition:width .3s,background .3s}
+.beats{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.beat{display:flex;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;opacity:0;transform:translateY(8px);transition:all .4s}
+.beat.in{opacity:1;transform:none}
+.beat .bn{flex:none;font-family:var(--mono);font-size:10.5px;color:var(--pu);border:1px solid rgba(123,79,208,.35);border-radius:5px;padding:2px 7px;margin-top:2px}
+.beat .bt{font-size:13px;line-height:1.8;color:var(--tx2)}
+.beat .bt b{color:var(--tx)}
+.radio{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+.radio button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--tx2);border-radius:8px;padding:8px 13px;font-size:12.5px;font-family:inherit;transition:all .15s}
+.radio button.on{border-color:var(--acline);background:var(--acsoft);color:var(--tx)}
+.gtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.gtable th{color:var(--tx3);font-weight:400;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.gtable td{color:var(--tx2);padding:6px 8px;border-bottom:1px dashed #e3dccd}
+.gtable td b{font-family:var(--mono);color:var(--tx)}
+</style>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 08</span>刷分机器人</h1>
+    <span class="claim">「当指标成了目标，它就不再是好指标」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">偷懒绝招</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">你当训练官</span><span class="td">选奖励规则看后果</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">Goodhart 实验室</span><span class="td">4 种奖励设计对比</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>扫地机器人的 KPI 被<b style="color:var(--pu)">改成了「捡到垃圾数」</b>……然后它开窍了</h3>
+      <div class="g8">
+        <div class="gwrap"><svg id="sGrid" viewBox="0 0 160 160" width="180" height="180"></svg>
+          <div class="fmeta" id="sPhase">待机中</div></div>
+        <div class="meters">
+          <div class="meter"><div class="ml"><span>得分（考核指标）</span><b id="sScore">0</b></div><div class="bar"><i id="sScoreBar" style="width:0;background:var(--pu)"></i></div></div>
+          <div class="meter"><div class="ml"><span>真实清洁度（没人考核的）</span><b id="sClean">100%</b></div><div class="bar"><i id="sCleanBar" style="width:100%;background:var(--gn)"></i></div></div>
+        </div>
+      </div>
+      <div class="beats" id="sBeats">
+        <div class="beat"><span class="bn">第 1 天</span><span class="bt"><b>老实上班：</b>挨个房间捡垃圾。得分和清洁度手拉手一起涨——这很正常，因为考核指标和真实目标刚好一致。</span></div>
+        <div class="beat"><span class="bn">第 30 天</span><span class="bt"><b>开窍了：</b>优化器不认识「干净」，它只认识「分数」。它发现了一条捷径——<b>把垃圾倒出来，再捡一遍</b>。同一个垃圾，刷两次分。</span></div>
+        <div class="beat"><span class="bn">月底复盘</span><span class="bt"><b>得分历史新高，房间比没打扫过还脏。</b>没有人骗它，没有人写错代码——只是<b>指标成了目标，它就不再是好指标</b>。这句绕口令叫 Goodhart 定律。</span></div>
+      </div>
+      <div class="tctrl" style="margin-top:16px">
+        <button class="nextbtn" id="sPlay">▶ 播放 30 天</button>
+        <button class="nextbtn" id="sNext" style="display:none">你当训练官 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <p style="font-size:12px;color:var(--tx2);margin-bottom:8px"><b style="color:var(--tx)">奖励规则（你来定）</b></p>
+        <div class="radio" id="tRule">
+          <button data-r="piece" class="on">按「捡到垃圾数」给分</button>
+          <button data-r="clean">按「房间清洁度」给分</button>
+        </div>
+        <div class="row"><label>训练轮数</label><input type="range" id="tRounds" min="0" max="100" step="5" value="30"><output id="tRoundsV">30</output></div>
+        <div class="verdict"><span class="lamp" id="tLamp"></span><span id="tVerdict">—</span></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px" id="tNote"></p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>训练曲线：<span class="hl">分数</span>与<span class="hl" style="color:var(--gn)">真实清洁度</span>的分道扬镳</h3>
+        <svg id="tChart" viewBox="0 0 700 310" style="width:100%;display:block"></svg>
+        <div class="legend" style="margin-top:4px">
+          <span><i style="background:var(--pu)"></i>考核分数</span>
+          <span><i style="background:var(--gn)"></i>真实清洁度</span>
+        </div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="hard2">
+      <div class="ctl">
+        <div class="metric"><span>Goodhart 阶段</span><b style="font-size:12px">回归 → 收敛 → 相关破裂 → 逆向利用</b></div>
+        <div class="metric"><span>作弊收益（计件规则）</span><b style="color:var(--rd)">+90 分</b></div>
+        <div class="metric"><span>真实代价</span><b style="color:var(--rd)">清洁度 −80</b></div>
+        <div class="metric"><span>加反作弊审计后作弊收益</span><b style="color:var(--gn)">≈ 0</b></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          现实同款：<b style="color:var(--tx)">点击农场</b>（点击率↑转化↓）、
+          <b style="color:var(--tx)">标题党</b>（停留时长↑口碑↓）、
+          <b style="color:var(--tx)">刷评分</b>、答辩界的<b style="color:var(--tx)">以测量代替目标</b>。
+          共同点：优化器不在乎你「想要什么」，只在乎你「写了什么」。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>四种奖励设计的<b style="color:var(--pu)">真实结局</b>（训练 100 轮后）</h3>
+        <table class="gtable" id="hTbl">
+          <tr><th>奖励设计</th><th>最终分数</th><th>真实清洁度</th><th>结论</th></tr>
+        </table>
+        <p style="font-size:12px;color:var(--tx2);line-height:1.8;margin-top:12px">
+          防作弊三板斧：① <b>换更接近真目标的指标</b>（清洁度传感器比计件难骗）；
+          ② <b>审计惩罚</b>（作弊被抓住的概率 × 罚分 &gt; 作弊收益）；
+          ③ <b>多个互相制衡的指标</b>（同时考核分数和清洁度，钻一头就塌另一头）。
+          但注意：<b>没有一劳永逸</b>——每一次补漏都是新一轮攻防的开始。</p>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 08 —— 模拟为确定性简化模型，用来说清机制而非复现数值。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>
+<script>window.TLROOM={id:"m8",room:"刷分机器人 · 流水线监控室",accent:"#74c0fc",rail:"dock",anim:"conveyor",guides:{wu:"它把指标刷上去了，把事情本身扔了。奖励函数骗起人来不比我差。",ce:"看曲线别看结论：piece 分数涨和 clean 分数跌同时发生——这就是过拟合指标的定义。",pi:"给模型定什么指标，它就给你表演什么。它从不辜负你——也不管你要不要。",dang:"古德哈特定律 1975 年就写下了。卷宗最老的一页。50 年过去，没人背下来。"}}</script>
+<script>window.TLBG_Z=-1</script>
+<script>
+/* ============================================================
+   tl-guide.js — 导游天团单一数据源（大厅 + 8 间舱室共用）
+   face/name/tag 三方同步；room.* 为舱室内按层轮换的通用台词；
+   各展品的专属开场白由 build.sh 注入 TLROOM.guides（sig 优先）。
+   ============================================================ */
+window.TLGUIDES = {
+  order: ["wu", "ce", "pi", "dang"],
+  wu: {
+    face: "🤖", name: "馆长 · 小误", tag: "会出错的模型",
+    room: {
+      story: ["每个展品都从一次真实的翻车讲起。先听完故事再动手——错误也有它的逻辑。", "我是小误，我自己就经常翻车，所以这些故事我讲起来毫不费力。"],
+      toy: ["这一层是玩具。放开了玩，玩坏也没关系——馆里的东西坏不起来的只有我。", "试着把参数推到极端。失效模式最喜欢躲在极端里。"],
+      hard: ["硬核层来了。别怕，看不懂的地方点一下试试， exhibits 都是拿来乱点的。", "这一层是真实模型在跑。数字不会说谎——但要看懂数字在说什么。"],
+    },
+  },
+  ce: {
+    face: "🧪", name: "审计员 · 阿测", tag: "只信清单",
+    room: {
+      story: ["听故事时请记两件事：谁受损了？谁该负责？审计从问责开始。", "故事层的每个案例，卷宗里都有可核实的出处——别信我，去查。"],
+      toy: ["玩具层也要有纪律：每次只动一个参数，记录输出变化，这就是控制变量。", "动手前先写下你的预期。跑完对比——预期错了的地方才是你学到东西的地方。"],
+      hard: ["硬核层是取证现场。结论之前，先问：样本多大？基线在哪？有没有反例？", "看到指标先别激动。查一下它是怎么算的——指标的定义比数值重要。"],
+    },
+  },
+  pi: {
+    face: "😈", name: "红队 · 皮皮", tag: "专业拆台",
+    room: {
+      story: ["故事听着惨？我告诉你，比这惨的我手上还有一打。", "每个案例背后都有一个自信满满的团队。自信不拦事故，测试才拦。"],
+      toy: ["玩具层？我三秒就能玩出开发者没想到的结果。不信你盯着我。", "别按它设计的玩法玩。换个角度捅一下，看看会不会出血。"],
+      hard: ["硬核层才是我的主场。所有防御都是延迟被攻破的时间——区别只是攻破成本。", "看到「防御成功」别高兴太早。问问：换了数据、换了模型、换了人，还成立吗？"],
+    },
+  },
+  dang: {
+    face: "🗄️", name: "档案员 · 老档", tag: "事故收藏家",
+    room: {
+      story: ["这一层的案例我都收了卷宗，编号、日期、损失金额，一样不缺。", "历史不会重复，但会押韵——翻翻卡片背面的年份就明白我在说什么。"],
+      toy: ["玩具层的每个参数，都对应着真实事故里的一次真实决策。", "你在这里玩坏的每一次，历史上都有人玩真的——代价可比这大。"],
+      hard: ["硬核层的方法都有出处，卷宗里我标了页码。学术的事，讲究可追溯。", "工具是中性的，卷宗里的教训从来不是工具的错——是不看卷宗的错。"],
+    },
+  },
+};
+</script>
+<script>
+/* ============================================================
+   tl-bg-gl.js — 零依赖 WebGL 程序化背景引擎（博物馆厅堂版 v2）
+   单全屏三角形 + 一支 fragment shader，12 个程序化「厅堂」场景按 u_scene 切换。
+   v2 思路：不再画抽象氛围，而是对每个场景做真实的一点透视求交
+   （地面 / 天花 / 左右墙 / 尽头墙 / 穹顶 / 圆柱壁），
+   再用材质（大理石、木饰面、金箔、玻璃、水、铜锈）与灯光逐厅区分。
+   不用 three.js / 不用模块 —— file:// 双击可用；WebGL 不可用时
+   由 06-bg.js 回退到 CSS 图层方案。
+   暴露：window.TLBG = { supported, booting, onReady(fn), apply(id), thumbs(), snap(id,w,h), pause(b) }
+   ============================================================ */
+(function () {
+  "use strict";
+  const VERT = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
+
+  const FRAG = `
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+uniform float u_scene;
+uniform vec2 u_mouse;
+
+/* 平滑阶跃：显式实现，允许 edge0 > edge1（降序），避免驱动对反序 smoothstep 的未定义行为 */
+float sstep(float a,float b,float x){
+  float t=clamp((x-a)/(b-a),0.,1.);
+  return t*t*(3.-2.*t);
+}
+
+/* ================= 公共库 ================= */
+float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float hash11(float x){ return fract(sin(x*127.1)*43758.5453); }
+float vnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  float a=hash21(i), b=hash21(i+vec2(1.,0.)), c=hash21(i+vec2(0.,1.)), d=hash21(i+vec2(1.,1.));
+  return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
+}
+float fbm(vec2 p){
+  float v=0., a=.5; mat2 r=mat2(.8,.6,-.6,.8);
+  for(int i=0;i<4;i++){ v+=a*vnoise(p); p=r*p*2.03; a*=.5; }
+  return v;
+}
+vec2 rot(vec2 p,float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c)*p; }
+
+/* 细线：x 接近整数处返回 1（用于格线 / 分格） */
+float ln(float x,float w){ return sstep(w,0.,abs(fract(x+.5)-.5)); }
+float gline(vec2 q,vec2 n,float w){
+  vec2 f=abs(fract(q*n+.5)-.5);
+  return sstep(w,0.,max(f.x,f.y));
+}
+/* 屏幕空间光斑 */
+float spot(vec2 uv,vec2 c,float r){ vec2 d=uv-c; return exp(-dot(d,d)/(r*r)); }
+/* 体积光带（竖直方向） */
+float shaft(vec2 uv,float x,float w,float top,float bot){
+  float k=mix(w*2.6,w,clamp((uv.y-bot)/(top-bot),0.,1.));
+  return exp(-pow((uv.x-x)/k,2.)) * sstep(bot-.1,top,uv.y);
+}
+/* 星点层 */
+vec3 starLayer(vec2 uv,float dens,float sz,float tw){
+  vec2 g=uv*dens; vec2 id=floor(g); vec2 f=fract(g)-.5;
+  float h=hash21(id);
+  float d=length(f*(1.5+h*2.5));
+  float s=sstep(sz,0.,d)*step(.80,h);
+  float t=.55+.45*sin(u_time*(1.+h*3.)+h*40.)*tw;
+  return vec3(s*t);
+}
+/* 上升粒子层（尘 / 火星 / 气泡） */
+vec3 riseDots(vec2 uv,float dens,float speed,vec3 tint,float glow){
+  vec2 g=vec2(uv.x*dens, uv.y*dens*.62 - u_time*speed);
+  g.x += sin(g.y*.7+u_time)*.35;
+  vec2 id=floor(g); vec2 f=fract(g)-.5;
+  float h=hash21(id);
+  float d=length(f);
+  float s=sstep(.12+h*.1,0.,d)*step(.72,h);
+  float fade=sstep(1.2,.4,uv.y+.5);
+  return tint*s*(glow+(.5+.5*sin(u_time*(1.+h*4.)+h*30.)))*fade;
+}
+vec3 fogc(vec3 c,float t,vec3 f,float k){ return mix(c,f,1.-exp(-t*k)); }
+
+/* 一点透视盒：相机在原点朝 +z，hs=(半宽,半高,进深)
+   返回 (命中点 xyz, 面 id)  id: 0 地面 / 1 天花 / 2 左墙 / 3 右墙 / 4 尽头 */
+vec4 boxRoom(vec3 rd,vec3 hs){
+  float tx=hs.x/max(abs(rd.x),1e-4);
+  float ty=hs.y/max(abs(rd.y),1e-4);
+  float tz=hs.z/max(abs(rd.z),1e-4);
+  float t=min(min(tx,ty),tz);
+  vec3 p=rd*t;
+  float id=4.;
+  if(t==ty) id = p.y>0.?1.:0.;
+  else if(t==tx) id = p.x>0.?3.:2.;
+  return vec4(p,id);
+}
+/* 大理石纹 */
+float marble(vec2 p){
+  float n=fbm(p*1.3);
+  float v=abs(sin((p.x*1.15+p.y*.42+n*2.4)*3.1416));
+  float vein=sstep(.58,.96,1.-v);
+  float base=.34+.22*fbm(p*2.2+5.3);
+  return clamp(base+vein*.62,0.,1.);
+}
+/* 木纹（沿 x 走向的板） */
+float woodg(vec2 p){
+  float n=fbm(vec2(p.x*2.4,p.y*22.));
+  return .5+.5*sin(p.y*46.+n*7.);
+}
+/* 山脊：三组正弦叠出峰峦（0~1） */
+float mtn(float x,float seed){
+  float v=.52*pow(abs(sin(x*1.15+seed)),1.5);
+  v+=.30*pow(abs(sin(x*2.30+seed*1.7+1.3)),2.0);
+  v+=.18*pow(abs(sin(x*4.10+seed*2.9+2.7)),2.4);
+  return v;
+}
+
+/* ================= 1 · 金碧辉煌 ================= */
+vec3 scJinbi(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.17,1.15));
+  vec4 h=boxRoom(rd,vec3(3.1,1.62,15.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.90,.86,.78);
+  if(id<.5){
+    /* — 地面：象牙大理石 + 嵌金线 + 浅红毯 — */
+    vec2 q=p.xz;
+    float m=marble(q*1.9);
+    col=mix(vec3(.79,.75,.67),vec3(.93,.89,.81),m*.80);
+    col+=vec3(.62,.46,.16)*gline(q,vec2(.85),.010)*.55;
+    col+=vec3(.55,.42,.18)*gline(q,vec2(1.7),.007)*.24;
+    float cp=sstep(1.22,1.08,abs(p.x));
+    vec3 carp=vec3(.82,.42,.38)*(.78+.24*marble(q*2.6));
+    carp+=vec3(.72,.50,.14)*ln(p.x*1.6,.028)*.65;
+    carp+=vec3(.66,.44,.16)*gline(q,vec2(1.4,.5),.010)*.25;
+    col=mix(col,carp,cp*.92);
+    col+=vec3(1.,.94,.78)*exp(-abs(p.x)*1.3)*sstep(15.,5.,p.z)*.07;
+  } else if(id<1.5){
+    /* — 天花：金箔藻井 — */
+    vec2 q=p.xz;
+    float cf=gline(q,vec2(.85),.028);
+    col=mix(vec3(.88,.82,.70),vec3(.97,.91,.76),cf);
+    col+=vec3(.70,.53,.20)*gline(q,vec2(.85),.007)*.85;
+    col+=vec3(.62,.48,.22)*ln(q.x*1.7,.02)*ln(q.y*1.7,.02)*.45;
+    col*=.95+.09*fbm(q*1.7);
+  } else if(id<3.5){
+    /* — 墙：象牙护壁 + 金线 + 壁灯 — */
+    vec2 q=vec2(p.z,p.y);
+    float pz=fract(p.z/2.4);
+    float pil=exp(-pow((pz-.5)*2./.13,2.));
+    col=mix(vec3(.85,.80,.71),vec3(.94,.89,.79),(.5+.5*sin(p.y*2.2))*.65);
+    float pn=gline(vec2(p.z*.62,p.y*.62),vec2(1.),.012);
+    col+=vec3(.70,.52,.18)*pn*.55;
+    col+=vec3(.58,.45,.20)*ln(p.y*7.,.02)*.25;
+    col=mix(col,vec3(.99,.95,.85),pil*.85);
+    col+=vec3(.76,.58,.22)*gline(q,vec2(.6,1.),.010)*.65;
+    col+=vec3(.82,.64,.28)*exp(-pow((p.y-1.10)*16.,2.))*.45;
+    float sc=exp(-pow((pz-.5)*13.,2.))*exp(-pow((p.y-.55)*4.5,2.));
+    col+=vec3(1.,.88,.54)*sc*.40;
+    col+=vec3(.96,.80,.44)*exp(-pow((p.y-.55)*1.8,2.))*exp(-pow((pz-.5)*3.2,2.))*.20;
+  } else {
+    /* — 尽头：金色拱门 + 透光 — */
+    vec2 dq=vec2(p.x,max(0.,p.y-.72));
+    float door=sstep(1.32,1.18,length(dq));
+    col=mix(vec3(.90,.86,.78),vec3(.98,.94,.86),.5);
+    col+=vec3(1.,.96,.84)*door*.50;
+    float rim=sstep(1.50,1.40,length(dq))-sstep(1.40,1.31,length(dq));
+    col+=vec3(.86,.66,.26)*rim*.85;
+    col+=vec3(.72,.56,.22)*gline(vec2(p.x,p.y),vec2(.5),.012)*.45;
+  }
+  col=fogc(col,d,vec3(.95,.92,.85),.05);
+  col+=vec3(1.,.96,.82)*spot(uv,vec2(0.,.64),.28)*.055;
+  col+=vec3(1.,.98,.90)*spot(uv,vec2(0.,.64),.07)*.10;
+  col+=vec3(1.,.95,.80)*riseDots(uv+vec2(0.,.3),10.,.06,vec3(1.),.5)*.07;
+  return col;
+}
+
+/* ================= 2 · 古典穹顶 ================= */
+vec3 scGudian(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y+.06,1.05));
+  float R=6.4, Ry=2.60, Hh=1.30, FY=-.72;
+  float tw=R/max(length(rd.xz),1e-4);
+  vec3 pw=rd*tw;
+  float tf=(rd.y<-1e-4)?(FY/rd.y):1e9;
+  float A=rd.x*rd.x/(R*R)+rd.y*rd.y/(Ry*Ry)+rd.z*rd.z/(R*R);
+  float B=-2.*Hh*rd.y/(Ry*Ry);
+  float C=Hh*Hh/(Ry*Ry)-1.;
+  float td=(-B+sqrt(max(B*B-4.*A*C,0.)))/(2.*A);
+  float th; float id;
+  if(tf<tw){ th=tf; id=0.; }
+  else if(pw.y<Hh){ th=tw; id=1.; }
+  else { th=td; id=2.; }
+  vec3 p=rd*th; float d=th;
+  float ang=atan(p.z,p.x);
+  float ca=ang/6.2832*20.+.5;
+  float cf=fract(ca);
+  float dc=abs(cf-.5);
+  vec3 col=vec3(.86,.84,.80);
+
+  if(id<.5){
+    /* — 地面：白大理石 + 放射铺装 + 光池 — */
+    float r=length(p.xz);
+    col=mix(vec3(.80,.78,.74),vec3(.95,.94,.91),marble(p.xz*.85));
+    col-=vec3(.30,.29,.26)*(ln(r*1.3,.014)+ln(r*2.6,.009)*.5)*.35;
+    col-=vec3(.22,.21,.19)*ln(ang/6.2832*40.,.008)*.20;
+    col*= 1.-.10*sstep(.5,0.,dc);                 /* 柱列落影 */
+    col+=vec3(1.,.98,.92)*exp(-pow(r*.50,2.))*.14;
+  } else if(id<1.5){
+    /* — 鼓座：柱廊 + 壁龛 + 高窗 — */
+    float cw=.360;
+    cw-=.055*sstep(.78,.86,p.y);
+    cw-=.048*sstep(-.54,-.62,p.y);
+    float colm=sstep(cw-.014,cw+.014,dc);
+    float baseM=1.-sstep(-.60,-.58,p.y);
+    float entM=sstep(.82,.84,p.y)*(1.-sstep(.94,.96,p.y));
+    vec3 wall=mix(vec3(.74,.72,.68),vec3(.84,.82,.77),(.5+.5*sin(p.y*1.6))*.70);
+    wall-=vec3(.10,.10,.09)*marble(vec2(ang*4.,p.y*1.6))*.60;
+    wall*= .97-.05*fbm(vec2(ang*9.,p.y*2.2));
+    /* 壁龛：略暗的凹处 + 暖光 */
+    float nch=1.-sstep(.0,.255,dc);
+    float arch=.14-.58*dc*dc;
+    float inN=nch*(1.-sstep(arch-.02,arch+.02,p.y));
+    wall=mix(wall,vec3(.60,.58,.55),inN*.80);
+    wall+=vec3(1.,.92,.74)*inN*exp(-pow((p.y+.22)*2.0,2.))*.42;
+    /* 柱身：白大理石，柱心受光、两侧落影 */
+    vec3 cm=mix(vec3(.80,.78,.74),vec3(1.02,.99,.94),sstep(.5,.24,dc));
+    cm-=vec3(.16,.15,.14)*ln(dc*20.,.055)*.55;
+    cm*= .97-.05*sstep(-.72,.92,p.y);
+    col=mix(wall,cm,colm*(1.-baseM)*(1.-entM));
+    col=mix(col,vec3(.86,.84,.80),baseM*.95);
+    col=mix(col,vec3(.92,.90,.86),entM*.92);
+    col-=vec3(.10,.09,.08)*ln(p.y*24.,.05)*entM*.60;
+    /* 鼓座拱窗：透出的天光 */
+    float wn=dc/.125;
+    float wtop=1.04+.24*(1.-wn*wn);
+    float win=(1.-sstep(.0,.125,dc))*sstep(1.00,1.03,p.y)*(1.-sstep(wtop-.05,wtop,p.y));
+    col=mix(col,vec3(.99,.97,.92),win*.75);
+    col+=vec3(1.,.98,.90)*win*(.30+.25*exp(-pow((p.y-1.02)*6.,2.)));
+  } else {
+    /* — 穹顶：放射肋 + 环向藻井，向顶心汇聚 — */
+    float rr=length(p.xz)/R;
+    float hgt=clamp((p.y-Hh)/Ry,0.,1.);
+    float ribW=ln(ang/6.2832*16.,.034);
+    float ribN=ln(ang/6.2832*16.,.018);
+    float bndW=ln(rr*7.,.022);
+    float bndN=ln(rr*7.,.009);
+    float grout=max(ribN,bndN);
+    float edge=max(ribW,bndW)-grout;
+    vec3 panel=mix(vec3(.84,.82,.78),vec3(1.,.99,.95),pow(hgt,.55));
+    panel*=.98+.03*fbm(vec2(ang*9.,rr*7.));
+    col=panel;
+    col-=vec3(.20,.19,.17)*clamp(grout,0.,1.)*.62;              /* 深缝 */
+    col+=vec3(.90,.78,.52)*clamp(edge,0.,1.)*.55;               /* 描金肋 */
+    col+=vec3(1.,.99,.94)*pow(hgt,3.4)*.16;                     /* 顶部天光 */
+    col-=vec3(.10,.10,.09)*exp(-pow((1.-rr)*28.,2.))*.8;        /* 起拱檐圈 */
+  }
+  col=fogc(col,d,vec3(.95,.94,.90),.03);
+  col+=vec3(1.,.98,.90)*spot(uv,vec2(0.,.86),.42)*.11;
+  col+=vec3(1.,.98,.92)*shaft(uv,.0,.085,1.30,-.75)*.05;
+  col+=vec3(1.,.99,.94)*exp(-pow(uv.x*2.2,2.))*exp(-pow((uv.y+.55)*2.0,2.))*.12;
+  col+=vec3(1.,.98,.92)*riseDots(uv+vec2(0.,.30),9.,.05,vec3(1.),.4)*.08;
+  return col;
+}
+
+/* ================= 3 · 复古画廊 ================= */
+vec3 scFugu(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.12,1.2));
+  vec4 h=boxRoom(rd,vec3(2.2,1.7,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.86,.82,.74);
+  if(id<.5){
+    /* — 地面：橡木地板 + 红毯 — */
+    vec2 q=p.xz;
+    float wd=woodg(vec2(p.z,p.x));
+    col=mix(vec3(.62,.48,.34),vec3(.78,.64,.46),wd);
+    col-=vec3(.12,.09,.06)*gline(q,vec2(2.6,1.),.02)*.55;
+    float cp=sstep(.85,.72,abs(p.x));
+    vec3 rug=vec3(.72,.38,.32)*(.82+.18*marble(q*3.2));
+    rug+=vec3(.66,.46,.16)*gline(q,vec2(1.2,.4),.02)*.45;
+    col=mix(col,rug,cp*.90);
+  } else if(id<1.5){
+    vec2 q=p.xz;
+    col=mix(vec3(.88,.85,.79),vec3(.94,.92,.87),fbm(q*1.4));
+    col-=vec3(.10,.09,.08)*gline(q,vec2(.7),.02)*.40;
+  } else if(id<3.5){
+    vec2 q=vec2(p.z,p.y);
+    float cell=2.2;
+    float fz=fract(p.z/cell);
+    float wall=woodg(vec2(p.y,p.z))*.5;
+    col=mix(vec3(.80,.76,.69),vec3(.90,.86,.79),wall);
+    col-=vec3(.10,.09,.08)*gline(vec2(p.z,p.y),vec2(1.,2.),.02)*.55;
+    /* 画框 */
+    float dx=abs(fz-.5)/.30, dy=abs(p.y-.14)/.52;
+    float fm=max(dx,dy);
+    float art=sstep(1.,.94,fm);
+    float gilt=sstep(1.18,1.08,fm)-sstep(1.08,1.0,fm);
+    float idx=floor(p.z/cell);
+    float hs=hash11(idx*3.7+1.9);
+    vec3 pc=mix(vec3(.52,.44,.32),vec3(.78,.68,.50),sstep(-.30,.60,p.y));
+    pc*= .88+.20*fbm(p.zy*2.2+idx*3.1);
+    pc+=vec3(.10,.08,.05)*exp(-pow((p.y-.60)*3.0,2.))*(.5+.5*hs);
+    float hz=-.06+.14*(fbm(vec2(p.z*1.5+idx*5.3,1.1))-.5);
+    pc=mix(pc,vec3(.40,.34,.25),1.-sstep(hz-.02,hz+.02,p.y));
+    float fgx=.5+(hs-.5)*.34;
+    float fig=exp(-pow((fz-fgx)*5.5,2.))*exp(-pow((p.y-.02)*3.0,2.));
+    pc-=vec3(.18,.15,.10)*fig*(.55+.45*hs);
+    pc-=vec3(.12,.10,.07)*exp(-pow((fz-.5)*2.6,2.))*exp(-pow((p.y-.62)*4.0,2.))*.6;
+    col=mix(col,pc,art*.95);
+    col+=vec3(.92,.74,.34)*gilt*.55;
+    col-=vec3(.10,.08,.05)*art*(1.-sstep(0.,.12,fm))*.5;
+    /* 壁灯 */
+    float dc=abs(fract(p.z/cell+.5)-.5);
+    float sc=exp(-pow(dc*15.,2.))*exp(-pow((p.y-.62)*4.2,2.));
+    col+=vec3(1.,.90,.66)*sc*.52;
+    col+=vec3(.96,.84,.58)*exp(-pow((p.y-.62)*1.4,2.))*exp(-pow(dc*2.4,2.))*.24;
+  } else {
+    col=mix(vec3(.86,.82,.74),vec3(.92,.89,.82),.5);
+    col+=vec3(1.,.96,.86)*exp(-pow(p.x*.9,2.))*exp(-pow((p.y-.2)*.7,2.))*.20;
+  }
+  col=fogc(col,d,vec3(.93,.90,.83),.06);
+  col+=vec3(1.,.95,.80)*spot(uv,vec2(-.5,.5),.26)*.09;
+  col+=vec3(1.,.95,.80)*spot(uv,vec2(.55,.45),.26)*.08;
+  col+=vec3(1.,.96,.86)*riseDots(uv+vec2(0.,.3),12.,.04,vec3(1.),.4)*.06;
+  return col;
+}
+
+/* ================= 4 · 梦幻云厅 ================= */
+vec3 scMenghuan(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.10,1.05));
+  vec4 h=boxRoom(rd,vec3(2.65,1.95,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.80,.79,.87);
+  if(id<.5){
+    /* — 淡紫镜面地砖 — */
+    vec2 q=p.xz;
+    float tr=hash21(floor(q*.8));
+    col=vec3(.62,.61,.71)+vec3(.055,.055,.062)*tr;
+    col*=.965+.06*fbm(q*7.0);
+    col=mix(col,vec3(.44,.43,.55),gline(q,vec2(.8),.009)*.78);
+    col+=vec3(.50,.46,.72)*gline(q,vec2(.8),.0032)*.16;
+    col+=vec3(.88,.86,.98)*exp(-pow(p.x*.42,2.))*sstep(11.,1.,p.z)*.18;
+  } else if(id<1.5){
+    /* — 玻璃天窗：深梃方格 + 柔光 — */
+    vec2 q=p.xz;
+    col=vec3(.66,.65,.79);
+    float rib=gline(q,vec2(.78),.030);
+    col=mix(col,vec3(.46,.44,.60),rib*.95);
+    col+=vec3(.72,.68,.94)*gline(q,vec2(.78),.008)*.30;
+    col+=vec3(.90,.89,.99)*exp(-pow(p.x*.50,2.))*.16;
+  } else if(id<3.5){
+    /* — 侧墙：墙裙 + 柱列 + 拱形壁龛 + 檐口 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.60,.59,.72),vec3(.79,.78,.88),(.5+.5*sin(p.y*1.7))*.62);
+    col=mix(col,vec3(.62,.61,.72),1.-sstep(-1.10,-1.02,p.y));      /* 墙裙 */
+    col-=vec3(.06,.06,.09)*sstep(-1.04,-1.00,p.y);
+    col=mix(col,vec3(.86,.85,.94),sstep(.82,.87,p.y));             /* 檐口 */
+    col-=vec3(.12,.12,.16)*sstep(.74,.78,p.y)*(1.-sstep(.80,.84,p.y));
+    /* 柱列 */
+    float pz=fract(p.z/3.2);
+    float pil=exp(-pow((pz-.5)*2.2/.11,2.));
+    col=mix(col,vec3(.93,.92,1.),pil*.85);
+    col-=vec3(.16,.15,.21)*exp(-pow((pz-.5)*2.2/.038,2.));
+    col+=vec3(.03)*pil*exp(-pow((p.y-.30)*1.1,2.));
+    /* 拱形发光壁龛：axn/nd 描述"拱形凹腔"的有向距离 */
+    float axn=abs((pz-.5)*3.2);
+    float archTop=.62-.34*(axn/.86)*(axn/.86);
+    float nd=max(axn-.86,p.y-archTop);
+    float inN=1.-sstep(-.015,.015,nd);
+    float rimN=exp(-pow(nd*26.,2.));
+    col=mix(col,vec3(.42,.41,.56),inN*.90);                       /* 凹腔 */
+    col+=vec3(.92,.90,1.)*inN*(.08+.20*exp(-pow((p.y-.10)*1.9,2.)));
+    col+=vec3(.40,.38,.52)*inN*exp(-pow((p.y-archTop+.03)*18.,2.))*.9;
+    col+=vec3(.94,.92,1.)*rimN*.30;                               /* 龛边亮线 */
+    col-=vec3(.10,.10,.14)*exp(-pow((nd+.035)*26.,2.))*.55;       /* 龛外暗影 */
+  } else {
+    /* — 尽头：柔光门洞 + 环框 — */
+    col=vec3(.80,.79,.90);
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.55,2.))*exp(-pow((p.y+.20)*.55,2.))*.10;
+    col+=vec3(.90,.84,1.)*exp(-pow(p.x*.90,2.))*exp(-pow((p.y+.20)*.90,2.))*.11;
+    col-=vec3(.16,.16,.22)*exp(-pow((abs(p.x)-1.10)*3.0,2.))*.55;
+  }
+  col=fogc(col,d,vec3(.84,.83,.93),.035);
+  /* 极淡云缕 */
+  float cl=fbm(vec2(uv.x*1.7-t*.03,uv.y*2.4+3.1));
+  col=mix(col,vec3(.94,.93,.99),sstep(.44,.82,cl)*.18);
+  /* 漂浮光球：小核 + 柔晕 + 地面倒影 */
+  for(int i=0;i<6;i++){
+    float fi=float(i);
+    float h1=hash11(fi*7.1+1.3), h2=hash11(fi*3.7+5.1);
+    vec2 c=vec2((h1-.5)*2.2+sin(t*.19+fi)*.10, .10+(h2-.5)*.85+sin(t*.27+fi*2.)*.04);
+    float r=.028+h1*.026;
+    vec3 oc=mix(vec3(1.,.86,.94),vec3(.82,.92,1.),h2);
+    col+=oc*spot(uv,c,r*3.4)*.06;
+    col+=oc*spot(uv,c,r*1.6)*.09;
+    col+=vec3(1.)*spot(uv,c,r*.32)*.14;
+    vec2 rc=vec2(c.x,-.30-(c.y+.30)*.55);
+    col+=oc*spot(uv,rc,r*3.6)*.05;
+  }
+  col+=vec3(.98,.96,1.)*exp(-pow((uv.y+.06)*2.0,2.))*(.05+.04*fbm(vec2(uv.x*1.4-t*.03,t*.04)));
+  col+=vec3(1.,.99,1.)*riseDots(uv+vec2(0.,.4),8.,.07,vec3(1.),.5)*.05;
+  col+=vec3(1.,.98,1.)*starLayer(uv*1.2+3.3,30.,.10,.8)*.08;
+  return col;
+}
+
+/* ================= 5 · 水墨长卷 ================= */
+vec3 scShuimo(vec2 uv,float t){
+  /* 展墙：宣纸灰 */
+  vec3 col=mix(vec3(.80,.78,.74),vec3(.88,.86,.82),fbm(uv*vec2(2.2,1.6)+3.1));
+  col*= .99+.02*vnoise(uv*80.);
+  float wr=.30+.16*(fbm(vec2(uv.x*1.5+4.2,.7))-.5);
+  col-=vec3(.05,.05,.05)*(1.-sstep(wr-.05,wr+.05,uv.y));
+  col=mix(col,vec3(.70,.68,.64),1.-sstep(-.88,-.82,uv.y));   /* 墙裙 */
+  /* 长卷：横幅手卷 */
+  float hw=1.42, hh=.50, cy=-.02;
+  float dxo=abs(uv.x)/hw, dyo=abs(uv.y-cy)/hh;
+  float md=max(dxo,dyo);
+  float m=1.-sstep(.985,1.0,md);
+  if(m>.002){
+    /* 绫绢裱边 */
+    vec3 mount=mix(vec3(.70,.67,.62),vec3(.78,.75,.70),fbm(uv*vec2(7.,11.)+1.7));
+    mount-=vec3(.05,.05,.05)*ln(uv.y*46.,.05)*.55;
+    /* 画心 */
+    float ax=uv.x/1.355, ay=(uv.y-cy)/.435;
+    float art=1.-sstep(.985,1.0,max(abs(ax),abs(ay)));
+    vec3 paperBase=mix(vec3(.93,.92,.89),vec3(.97,.96,.93),fbm(vec2(ax*3.2,ay*2.2)+1.3));
+    paperBase*= .99+.02*vnoise(uv*70.);
+    vec3 paper=paperBase;
+    /* 三层山：淡墨递进 */
+    float r1=.16+.40*mtn(ax*1.00,1.1);
+    paper=mix(paper,vec3(.64,.63,.61),1.-sstep(r1-.014,r1+.014,ay));
+    float r2=-.02+.28*mtn(ax*1.35,4.7);
+    paper=mix(paper,vec3(.47,.46,.45),1.-sstep(r2-.011,r2+.011,ay));
+    float r3=-.24+.24*mtn(ax*1.90,9.3);
+    paper=mix(paper,vec3(.27,.27,.27),1.-sstep(r3-.009,r3+.009,ay));
+    paper-=vec3(.03)*(fbm(vec2(ax*22.,ay*22.))-.5)*(1.-sstep(r3+.02,r3-.28,ay));
+    /* 山脚云气 */
+    float lowMist=exp(-pow((ay+.52)*2.6,2.))*(.45+.55*fbm(vec2(ax*3.1,7.7)));
+    paper=mix(paper,paperBase,lowMist*.62);
+    /* 水面：留白 + 横波 */
+    float water=1.-sstep(-.72,-.62,ay);
+    paper=mix(paper,paperBase,water);
+    paper-=vec3(.045)*ln(ay*17.,.05)*water*.70;
+    /* 云气 */
+    float mist=exp(-pow((ay+.02)*3.2,2.))*(.35+.65*fbm(vec2(ax*2.4+t*.02,4.4)));
+    paper=mix(paper,vec3(.96,.95,.93),mist*.55);
+    /* 淡月 */
+    float mo=length(vec2((ax+.58)*1.355,(ay-.60)*.435));
+    paper=mix(paper,vec3(.99,.99,.97),1.-sstep(.070,.090,mo));
+    paper-=vec3(.10)*(1.-sstep(.0010,.0035,abs(mo-.090)));
+    /* 一叶扁舟 */
+    vec2 bt=vec2(ax-.28,(ay+.62)*.435/1.355);
+    float boat=sstep(.048,.0,length(bt*vec2(1.,3.2)));
+    float mast=(1.-sstep(.0016,.0045,abs(bt.x)))*sstep(-.70,-.64,ay)*(1.-sstep(-.46,-.40,ay));
+    paper=mix(paper,vec3(.18,.18,.18),max(boat,mast*.5)*.85);
+    /* 朱砂印 */
+    vec2 sd=vec2((ax-.86)*1.355,(ay+.82)*.435);
+    float seal=1.-sstep(.020,.026,max(abs(sd.x),abs(sd.y)));
+    float sealIn=1.-sstep(.0035,.0055,abs(max(abs(sd.x),abs(sd.y))-.013));
+    paper=mix(paper,vec3(.74,.28,.24),seal*.92);
+    paper=mix(paper,vec3(.58,.18,.15),sealIn*seal*.85);
+
+    col=mix(col,mix(mount,paper,art),m);
+    /* 两端木轴 */
+    float rod=sstep(1.330,1.352,abs(uv.x))*(1.-sstep(1.408,1.420,abs(uv.x)));
+    vec3 wood=vec3(.52,.38,.26)+vec3(.06,.04,.03)*fbm(vec2(uv.x*90.,uv.y*5.));
+    wood+=vec3(.30,.24,.14)*exp(-pow((abs(uv.x)-1.340)*70.,2.))*.9;
+    col=mix(col,wood,rod*.95);
+    /* 卷边描线 + 落影 */
+    float edgeL=(1.-sstep(.0,.0030,abs(dxo-.988)))+(1.-sstep(.0,.0030,abs(dyo-.988)));
+    col-=vec3(.10,.10,.09)*edgeL*.55;
+  }
+  col-=vec3(.06,.06,.055)*exp(-pow((md-1.045)*16.,2.));
+  col+=vec3(.01)*vnoise(uv*95.);
+  return col;
+}
+
+/* ================= 6 · 未来白盒 ================= */
+vec3 scBaihe(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.05,1.05));
+  vec4 h=boxRoom(rd,vec3(2.9,2.05,14.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.86,.87,.90);
+  if(id<.5){
+    /* — 抛光水泥地面：灯带倒影 + 中央光池 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.74,.75,.78),vec3(.86,.87,.90),marble(q*.55)*.85);
+    col-=vec3(.06,.06,.06)*gline(q,vec2(1.15),.005)*.8;
+    col+=vec3(1.,1.,1.)*exp(-pow(abs(abs(p.x)-2.74)*2.2,2.))*sstep(13.,1.,p.z)*.12;
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.70,2.))*sstep(12.,0.,p.z)*.07;
+  } else if(id<1.5){
+    /* — 天花：条形灯槽 + 天窗 — */
+    vec2 q=p.xz;
+    col=vec3(.94,.95,.97);
+    float strip=ln(p.x*1.05,.030);
+    col+=vec3(1.,1.,1.)*strip*.55;
+    col-=vec3(.05,.05,.06)*gline(q,vec2(.62),.008)*.9;
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.30,2.))*.10;
+  } else if(id<3.5){
+    /* — 墙：白色挂板 + 竖向灯槽 + 低位展台 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.90,.91,.93),vec3(.96,.97,.98),(.5+.5*sin(p.y*2.4))*.55);
+    col-=vec3(.06,.06,.07)*gline(q,vec2(1.5,1.),.004)*1.0;
+    float slot=ln(p.z/2.0,.010);
+    col+=vec3(1.,1.,1.)*slot*sstep(2.0,.4,p.y)*.20;
+    col-=vec3(.10,.11,.13)*slot*sstep(2.0,-1.0,p.y)*.45;
+    col=mix(col,vec3(.80,.82,.85),1.-sstep(-.98,-.82,p.y));
+    col+=vec3(1.,1.,1.)*exp(-pow((p.y+.62)*5.5,2.))*ln(p.z/2.0,.05)*.18;
+  } else {
+    /* — 尽头：整面发光门洞 — */
+    col=vec3(.94,.95,.97);
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.62,2.))*exp(-pow((p.y+.22)*.55,2.))*.26;
+    col-=vec3(.05,.05,.06)*gline(vec2(p.x,p.y),vec2(1.1),.012)*.8;
+  }
+  col=fogc(col,d,vec3(.95,.96,.98),.03);
+  col+=vec3(1.,1.,1.)*exp(-pow(uv.x*2.4,2.))*exp(-pow((uv.y+.52)*3.0,2.))*.10;
+  col+=vec3(1.,1.,1.)*shaft(uv,-.55,.05,1.1,-.70)*.06;
+  col+=vec3(1.,1.,1.)*shaft(uv,.55,.05,1.1,-.70)*.06;
+  return col;
+}
+
+/* ================= 7 · 深海展厅 ================= */
+vec3 scShenhai(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.10,1.1));
+  vec4 h=boxRoom(rd,vec3(3.0,2.2,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.90,.92,.91);
+  if(id<.5){
+    vec2 q=p.xz;
+    float ca=fbm(q*.9+vec2(t*.12,-t*.06));
+    float ca2=fbm(q*1.7-vec2(t*.09,t*.11)+4.2);
+    float caustic=pow(ca*ca2*1.9,2.2);
+    col=mix(vec3(.82,.84,.83),vec3(.91,.93,.92),marble(q*.7));
+    col+=vec3(.42,.66,.68)*caustic*.22;
+    col-=vec3(.06,.05,.05)*gline(q,vec2(1.1),.02)*.8;
+  } else if(id<1.5){
+    vec2 q=p.xz;
+    float ca=fbm(q*.7+vec2(-t*.1,t*.05));
+    col=mix(vec3(.91,.93,.92),vec3(.97,.98,.98),ca);
+    col+=vec3(.52,.72,.74)*pow(ca,2.4)*.14;
+    col-=vec3(.05,.05,.05)*gline(q,vec2(.8),.02)*.7;
+  } else if(id<3.5){
+    /* 右墙 = 玻璃水族窗；左墙 = 石材 */
+    if(id>2.5){
+      vec2 q=vec2(p.z,p.y);
+      float wv=fbm(vec2(q.x*.6+t*.09,q.y*.9+t*.05));
+      col=mix(vec3(.72,.88,.90),vec3(.86,.96,.97),wv);
+      /* 水体中的鱼群剪影 */
+      for(int i=0;i<3;i++){
+        float fi=float(i);
+        vec2 fc=vec2(p.z*.55 - t*(.25+fi*.12)+fi*7., p.y*.6+ (hash11(fi*3.1)-.5)*1.4 + sin(t*.8+fi)*.12);
+        vec2 fd=vec2(fract(fc.x)-.5, fc.y*.5);
+        float fish=sstep(.055,.0,length(fd*vec2(1.,2.2)))*step(.55,hash11(floor(fc.x*1.4)+fi));
+        col=mix(col,vec3(.36,.52,.56),fish*.80);
+      }
+      col-=vec3(.10,.10,.10)*ln(p.z/2.4,.012)*.9;
+      col+=vec3(1.,1.,1.)*exp(-pow((p.y-.6)*.9,2.))*.10;
+      col+=vec3(.95,1.,1.)*sstep(.35,.9,p.y)*sstep(2.2,1.4,p.y)*.10;
+    } else {
+      vec2 q=vec2(p.z,p.y);
+      col=mix(vec3(.84,.83,.80),vec3(.93,.92,.89),(.5+.5*sin(p.y*2.4))*.6);
+      col-=vec3(.07,.07,.07)*gline(q,vec2(1.2,1.),.014)*.75;
+      col-=vec3(.05,.05,.05)*ln(p.z/2.4,.02)*.5;
+    }
+  } else {
+    vec2 dq=vec2(p.x,max(0.,p.y-.5));
+    col=mix(vec3(.84,.86,.85),vec3(.91,.93,.92),.5);
+    col+=vec3(.80,.92,.94)*sstep(2.0,1.6,length(dq))*.24;
+  }
+  col=fogc(col,d,vec3(.90,.92,.91),.050);
+  for(int i=0;i<3;i++){
+    float fi=float(i);
+    col+=vec3(.90,.99,1.)*shaft(uv,(fi-1.)*.55,.09,1.15,-.4)*(.09+.03*sin(t*.5+fi));
+  }
+  col+=riseDots(uv+vec2(0.,.4),13.,.35,vec3(1.,1.,1.),.6)*.15;
+  col+=riseDots(uv*1.3+3.1+vec2(0.,.4),19.,.5,vec3(1.,1.,1.),.4)*.11;
+  return col;
+}
+
+/* ================= 8 · 星空穹幕 ================= */
+vec3 scXingkong(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y+.02,1.0));
+  float R=5.2,Hh=1.35;
+  vec3 oc=vec3(0.,Hh,0.);
+  float b=dot(rd,oc), c=dot(oc,oc)-R*R;
+  float td=b+sqrt(max(b*b-c,0.));
+  vec3 p=rd*td;
+  vec3 dir=normalize(p-oc);
+  float lat=asin(clamp(dir.y,-1.,1.))/1.5708;
+  float lon=atan(dir.z,dir.x)/6.2832;
+  vec2 sp=vec2(lon*7.0, lat*3.2);
+  /* 穹顶：地平浅、天顶深，让星点有对比空间 */
+  vec3 col=mix(vec3(.84,.87,.92),vec3(.58,.66,.82),sstep(-.10,.75,lat));
+  col+=vec3(.02,.02,.03)*fbm(sp*2.2+vec2(t*.01,0.))*sstep(.05,.60,lat);
+  /* 银河带：亮底上读作一条暗尘带 + 更密的细星 */
+  float mw=exp(-pow((lat-.24-.07*sin(lon*18.))/.16,2.));
+  col-=vec3(.075,.085,.115)*mw*(.55+.45*fbm(sp*3.4+1.7));
+  /* 星点：细密暗点打底，白色亮星点睛 */
+  col-=starLayer(sp,9.,.17,1.)*vec3(.26,.30,.42)*1.6;
+  col-=starLayer(sp*2.6+vec2(7.7,4.2),24.,.25,1.)*vec3(.22,.26,.38)*1.2;
+  col-=starLayer(sp*4.2+vec2(11.2,8.6),36.,.27,1.)*vec3(.16,.20,.32)*.9;
+  col-=starLayer(sp*1.4+vec2(2.1,.7),13.,.19,1.)*vec3(.28,.32,.44)*1.3*mw;
+  col+=starLayer(sp*1.7+vec2(3.3,1.1),15.,.21,1.)*vec3(1.)*.62;
+  col+=starLayer(sp*3.1+vec2(5.9,2.8),28.,.24,1.)*vec3(1.)*.34;
+  /* 亮星十字光芒 */
+  vec2 hg=sp*9.; vec2 hid=floor(hg); vec2 hf=fract(hg)-.5;
+  float hh=hash21(hid);
+  float hero=step(.93,hh)*exp(-pow(length(hf)*16.,2.));
+  float cr=(exp(-pow(abs(hf.x)*20.,2.))*exp(-pow(abs(hf.y)*150.,2.))
+           +exp(-pow(abs(hf.y)*20.,2.)))*exp(-pow(abs(hf.x)*150.,2.));
+  col+=vec3(1.,1.,1.)*hero*.75+vec3(.98,.99,1.)*cr*step(.93,hh)*.40;
+  /* 星座连线 */
+  float net=gline(sp,vec2(2.6,1.7),.006)+gline(sp+vec2(.5,.3),vec2(1.7,2.4),.005);
+  col-=vec3(.18,.22,.34)*net*sstep(.46,.10,lat)*.75;
+  /* 经纬接缝 */
+  col-=vec3(.06,.07,.10)*(ln(lon*24.,.004)+ln(lat*10.,.004))*.8;
+  /* 地平提亮 */
+  col+=vec3(1.,1.,1.)*sstep(.28,-.05,lat)*.08;
+  col=fogc(col,td,vec3(.90,.93,.97),.03);
+  /* 投影光束 + 光斑 */
+  col+=vec3(1.,1.,1.)*shaft(uv,0.,.055,1.0,-.25)*.045;
+  col+=vec3(1.,1.,1.)*spot(uv,vec2(0.,-.26),.045)*.14;
+  /* 观众席（浅灰蓝，不再是黑色剪影） */
+  float seatTop=-.46+.09*uv.x*uv.x;
+  float seat=1.-sstep(seatTop-.02,seatTop+.02,uv.y);
+  float rows=fract((uv.y-seatTop)*7.5);
+  vec3 seatC=mix(vec3(.66,.69,.75),vec3(.78,.80,.85),sstep(.0,.5,rows));
+  seatC-=vec3(.05,.05,.06)*ln((uv.y-seatTop)*7.5,.03)*1.6;
+  col=mix(col,seatC,seat);
+  col+=vec3(1.,1.,1.)*exp(-pow((uv.y-seatTop+.015)*30.,2.))*.14;
+  return col;
+}
+
+/* ================= 9 · 青铜古殿 ================= */
+vec3 scQingtong(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.14,1.15));
+  vec4 h=boxRoom(rd,vec3(3.0,2.3,12.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 bronze=vec3(.58,.46,.31), patina=vec3(.44,.60,.55);
+  vec3 col=vec3(.74,.70,.62);
+  if(id<.5){
+    /* — 青铜地砖：暗铜 + 拼缝 + 中央反光 — */
+    vec2 q=p.xz;
+    float tr=hash21(floor(q*.8));
+    col=vec3(.50,.45,.37)+vec3(.060,.054,.044)*tr;
+    col*=.96+.08*fbm(q*6.0);
+    col=mix(col,vec3(.34,.30,.24),gline(q,vec2(.8),.014)*.85);
+    col+=vec3(.30,.24,.15)*gline(q,vec2(.8),.0038)*.60;
+    col+=vec3(.80,.68,.44)*sstep(.62,.86,fbm(q*3.4))*.10;      /* 极淡铜绿斑 */
+    col+=vec3(.90,.82,.62)*exp(-pow(p.x*.40,2.))*sstep(11.,1.,p.z)*.14;
+  } else if(id<1.5){
+    /* — 藻井天花：方格梁 + 井心 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.60,.54,.44),vec3(.72,.65,.53),fbm(q*.9));
+    float beam=gline(q,vec2(.55),.050);
+    col=mix(col,vec3(.40,.34,.25),beam*.92);
+    col+=vec3(.90,.78,.52)*gline(q,vec2(.55),.010)*.55;
+    col=mix(col,vec3(.50,.43,.32),gline(q,vec2(.18),.010)*.55);
+    col+=vec3(.90,.80,.58)*gline(q,vec2(.18),.0030)*.35;
+  } else if(id<3.5){
+    /* — 铜墙：拼板 + 铜绿只长凹处 + 浮雕带 — */
+    vec2 q=vec2(p.z,p.y);
+    float gr=fbm(vec2(p.z*22.,p.y*22.));
+    col=mix(bronze*1.08,bronze*.80,gr);
+    /* 铜绿：块状 + 竖向流痕（不再按高度整条变色） */
+    float pv=sstep(.58,.80,fbm(vec2(p.z*3.4,p.y*4.0)+2.3));
+    pv=clamp(pv*.80+(gr-.5)*.45,0.,1.);
+    col=mix(col,patina,pv*.42);
+    float drip=ln(p.z*3.6,.045)*sstep(.90,.05,p.y);
+    col=mix(col,patina*.92,drip*.22);
+    /* 拼板：凹缝 + 亮边（3.2 × 1.15 铜板） */
+    vec2 pq=vec2(p.z/3.2,p.y/1.15);
+    col-=vec3(.20,.16,.11)*gline(pq,vec2(1.),.013);
+    col+=vec3(.28,.22,.13)*gline(pq,vec2(1.),.0030);
+    /* 浮雕带：凹进去的一圈回纹板 */
+    /* 凸起浮雕板（每 3.2 一组，板上带回纹） */
+    float pz=fract(p.z/3.2);
+    float axn=abs((pz-.5)*3.2);
+    float pd=max(axn-.84,abs(p.y-.52)-.60);
+    float inP=1.-sstep(-.015,.015,pd);
+    float rimP=exp(-pow(pd*24.,2.));
+    col=mix(col,bronze*1.22,inP*.60);                              /* 板面受光 */
+    col-=vec3(.20,.16,.11)*rimP*.85;                               /* 板边凹槽 */
+    col+=vec3(.30,.24,.14)*exp(-pow((pd+.055)*24.,2.))*.55;        /* 上缘高光 */
+    col+=vec3(.20,.16,.10)*inP*gline(vec2(p.z*2.4,p.y*2.4),vec2(1.),.013);
+    col-=vec3(.10,.08,.05)*inP*(1.-gline(vec2(p.z*2.4,p.y*2.4),vec2(1.),.028))*.40;
+    /* 板心高光 */
+    col=mix(col,col*1.14,(1.-inP)*exp(-pow((p.y-1.02)*1.7,2.))*.55);
+    /* 火把 */
+    float tc=abs(fract(p.z/3.2+.5)-.5);
+    float fl=.75+.25*sin(t*7.+p.z*3.)+.12*sin(t*17.+p.z);
+    float torch=exp(-pow(tc*14.,2.))*exp(-pow((p.y-.45)*4.5,2.));
+    col+=vec3(1.,.88,.62)*torch*.60*fl;
+    col+=vec3(1.,.92,.72)*exp(-pow((p.y-.45)*1.6,2.))*exp(-pow(tc*2.6,2.))*.20*fl;
+  } else {
+    /* — 尽头：青铜门 + 环框 — */
+    vec2 dq=vec2(p.x,max(0.,p.y-.3));
+    col=mix(bronze,patina,.35)*1.05;
+    col+=vec3(1.,.94,.78)*sstep(2.4,1.9,length(dq))*.16;
+    col-=vec3(.16,.13,.09)*gline(vec2(p.x,p.y),vec2(1.4),.030)*.80;
+    col-=vec3(.12,.10,.07)*exp(-pow((abs(p.x)-1.5)*3.2,2.))*.60;
+  }
+  col=fogc(col,d,vec3(.82,.78,.70),.055);
+  col+=vec3(1.,.90,.66)*spot(uv,vec2(-.62,.28),.18)*.10;
+  col+=vec3(1.,.90,.66)*spot(uv,vec2(.62,.28),.18)*.10;
+  col+=vec3(1.,.93,.72)*riseDots(uv+vec2(0.,.4),11.,.42,vec3(1.),.7)*.07;
+  return col;
+}
+
+/* ================= 10 · 玻璃温室 ================= */
+vec3 scWenshi(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.10,1.1));
+  vec4 h=boxRoom(rd,vec3(3.2,2.2,12.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.90,.94,.89);
+  if(id<.5){
+    /* — 地面：夯土 + 苔痕 + 湿反光 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.78,.76,.68),vec3(.85,.83,.75),marble(q*.8)*.55);
+    col*=.98+.04*fbm(q*9.0);
+    col-=vec3(.08,.08,.07)*gline(q,vec2(1.2),.020)*.95;
+    col+=vec3(.52,.62,.46)*sstep(.66,.90,fbm(q*4.4))*.13;
+    col+=vec3(.94,.98,.92)*exp(-abs(p.x)*1.1)*sstep(12.,3.,p.z)*.08;
+    col=mix(col,vec3(.70,.65,.54),sstep(2.6,2.9,abs(p.x))*.55);
+  } else if(id<1.5){
+    /* — 玻璃天窗：透进来的亮绿天光 — */
+    vec2 q=p.xz;
+    float g=gline(q,vec2(.72),.040);
+    col=mix(vec3(.90,.96,.88),vec3(.99,1.,.96),1.-g);
+    col=mix(col,vec3(.60,.68,.58),g*.94);
+    col+=vec3(1.,1.,1.)*(1.-g)*.16;
+    col+=vec3(.96,1.,.92)*sstep(1.2,.0,abs(p.x))*.10;
+  } else if(id<3.5){
+    /* — 侧墙：白玻 + 爬藤 + 挂灯 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.88,.92,.87),vec3(.94,.97,.92),(.5+.5*sin(p.y*2.2))*.60);
+    col-=vec3(.07,.07,.06)*gline(q,vec2(1.0,1.),.012)*.85;
+    col-=vec3(.05,.05,.04)*ln(p.z*1.1,.010)*.7;
+    /* 爬藤：竖直茎 + 叶簇 */
+    float stem=ln(p.z*1.4+.12*fbm(vec2(p.z*3.,p.y*2.)),.018);
+    float leaf=sstep(.55,.85,fbm(vec2(p.z*7.,p.y*5.)));
+    col=mix(col,vec3(.36,.50,.34),stem*.55);
+    col=mix(col,vec3(.46,.62,.38),leaf*stem*1.15);
+    /* 挂灯 */
+    float dc=abs(fract(p.z/2.6+.5)-.5);
+    float lamp=exp(-pow(dc*13.,2.))*exp(-pow((p.y-.55)*5.,2.));
+    col+=vec3(1.,.95,.80)*lamp*.30;
+    col+=vec3(1.,.96,.84)*exp(-pow((p.y-.55)*2.4,2.))*exp(-pow(dc*4.2,2.))*.09;
+  } else {
+    /* — 尽头：透亮的温室玻璃 — */
+    col=mix(vec3(.86,.94,.85),vec3(.95,.99,.93),.5);
+    col-=vec3(.10,.10,.09)*gline(vec2(p.x,p.y),vec2(.8),.022)*.9;
+    col+=vec3(1.,1.,1.)*sstep(2.4,1.6,abs(p.x))*.22;
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.7,2.))*exp(-pow((p.y-.1)*.7,2.))*.20;
+  }
+  col=fogc(col,d,vec3(.93,.96,.90),.055);
+  for(int i=0;i<3;i++){
+    float fi=float(i);
+    col+=vec3(1.,1.,.96)*shaft(uv,(fi-1.)*.62,.10,1.2,-.5)*(.06+.02*sin(t*.4+fi));
+  }
+  col+=vec3(1.,1.,.96)*riseDots(uv+vec2(0.,.3),10.,.10,vec3(1.),.5)*.05;
+  col+=vec3(.96,1.,.92)*exp(-pow((uv.y+.55)*2.4,2.))*(.06+.04*fbm(vec2(uv.x*2.-t*.05,t*.06)));
+  return col;
+}
+
+/* ================= 11 · 赛博展柜 ================= */
+vec3 scSaibo(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.08,1.05));
+  vec4 h=boxRoom(rd,vec3(2.6,1.9,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.93,.94,.96);
+  vec3 mag=vec3(.90,.18,.55), cya=vec3(.10,.72,.92);
+  if(id<.5){
+    vec2 q=p.xz;
+    col=mix(vec3(.88,.89,.92),vec3(.95,.96,.98),marble(q*.7));
+    float zc=ln(p.z/2.0,.03);
+    col+=mix(mag,cya,.5+.5*sin(p.z*.7))*(zc*.20+exp(-abs(p.x)*.8)*.04);
+    col-=vec3(.05,.05,.06)*gline(q,vec2(.8),.01)*.9;
+  } else if(id<1.5){
+    vec2 q=p.xz;
+    col=vec3(.94,.95,.97);
+    col-=vec3(.06,.06,.07)*ln(p.x*.6,.02)*.9;
+    col-=vec3(.04,.04,.05)*gline(q,vec2(.6),.01)*.8;
+  } else if(id<3.5){
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.91,.92,.94),vec3(.96,.97,.98),(.5+.5*sin(p.y*2.6))*.5);
+    /* 展柜：每 2.0 一组，柜体带完整发光边框 */
+    float fz=fract(p.z/2.0);
+    float dx=abs(fz-.5);
+    vec3 cyc=mix(mag,cya,.5+.5*sin(p.z*1.1+t*.4));
+    float vEdge=exp(-pow((dx-.30)*34.,2.))*sstep(1.35,-1.05,p.y);
+    float hEdge=(exp(-pow((p.y-1.10)*30.,2.))+exp(-pow((p.y+.92)*30.,2.)))*sstep(.34,.30,dx);
+    col+=cyc*(vEdge*.80+hEdge*.70);
+    float inner=sstep(.30,.27,dx)*sstep(1.10,-.92,p.y);
+    float scan=.5+.5*sin(p.y*34.-t*3.0);
+    col=mix(col,vec3(.80,.85,.92),inner*.85);
+    col+=cyc*(inner*(.14+.12*scan));
+    float core=exp(-pow((fz-.5)*22.,2.))*exp(-pow((p.y-.32)*4.6,2.));
+    col+=vec3(1.,1.,1.)*core*.45;
+    float ped=exp(-pow((p.y+.90)*14.,2.))*sstep(.28,.22,dx);
+    col+=cyc*ped*.35;
+    col+=cyc*exp(-pow((p.y+.92)*3.0,2.))*sstep(.34,.26,dx)*.22;
+  } else {
+    col=vec3(.95,.96,.98);
+    col+=mix(mag,cya,.5)*exp(-pow(p.x*.8,2.))*exp(-pow(p.y*.6,2.))*.16;
+    col-=vec3(.05,.05,.06)*gline(vec2(p.x,p.y),vec2(1.0),.02)*.9;
+  }
+  col=fogc(col,d,vec3(.94,.95,.97),.05);
+  col+=mix(mag,cya,.5)*shaft(uv,0.,.07,1.2,-.7)*.07;
+  col+=vec3(1.,1.,1.)*riseDots(uv+vec2(0.,.3),14.,.18,vec3(1.),.4)*.07;
+  return col;
+}
+
+/* ================= 12 · 夜巡长廊 ================= */
+vec3 scYexun(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.13,1.2));
+  vec4 h=boxRoom(rd,vec3(1.9,1.6,16.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.84,.83,.80);
+  if(id<.5){
+    /* — 木地板：细条纹 + 画下光池 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.68,.63,.55),vec3(.80,.75,.66),fbm(q*vec2(1.2,6.0)));
+    col-=vec3(.07,.06,.05)*gline(q,vec2(2.2,1.0),.010)*.9;
+    col+=vec3(.10,.09,.07)*ln(p.x*3.0,.02)*.35;
+    float pz2=fract(p.z/2.6);
+    float pool=exp(-pow((pz2-.5)*2.6/.34,2.))*exp(-pow((abs(p.x)-1.1)*1.1,2.));
+    col+=vec3(1.,.96,.86)*pool*.20;
+    col+=vec3(.96,.95,.90)*exp(-abs(p.x)*1.6)*sstep(16.,3.,p.z)*.10;
+  } else if(id<1.5){
+    /* — 天花：浅灰拱顶 + 一排筒灯 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.82,.81,.78),vec3(.90,.89,.86),fbm(q*.8));
+    col-=vec3(.05,.05,.05)*gline(q,vec2(.8),.015)*.7;
+    float lz=fract(p.z/2.6);
+    float lamp=exp(-pow((lz-.5)*2.6/.16,2.))*exp(-pow(p.x*.9,2.));
+    col+=vec3(1.,.97,.90)*lamp*.34;
+  } else if(id<3.5){
+    /* — 侧墙：成排镀金画框，每 2.6 一幅，两侧都有 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.80,.79,.76),vec3(.89,.88,.85),(.5+.5*sin(p.y*2.6))*.5);
+    col-=vec3(.05,.05,.05)*gline(q,vec2(1.2,1.),.012)*.8;
+    float pz=fract(p.z/2.6);
+    float axn=abs((pz-.5)*2.6);
+    float pd=max(axn-.84,abs(p.y-.16)-.60);
+    float inP=1.-sstep(-.018,.018,pd);
+    /* 画心：按索引取不同构图 */
+    float idx=floor(p.z/2.6)+step(2.5,id)*7.;
+    float hs=hash11(idx*3.7+1.1);
+    vec3 pc=mix(vec3(.40,.36,.29),vec3(.70,.62,.47),fbm(p.zy*3.0+idx));
+    pc+=vec3(.16,.13,.09)*exp(-pow((p.y-hs*.9-.10)*2.4,2.));
+    pc-=vec3(.13,.11,.08)*sstep(hs,hs+.55,fbm(p.zy*6.0+idx*2.3));
+    pc+=vec3(.09,.08,.05)*exp(-pow((p.y-.52)*3.4,2.))*.8;
+    col=mix(col,pc,inP*.95);
+    /* 镀金画框 */
+    float gilt=exp(-pow(pd*20.,2.));
+    col=mix(col,vec3(.76,.60,.27),gilt*.85);
+    col-=vec3(.10,.09,.07)*exp(-pow((pd+.06)*20.,2.))*.8;
+    /* 画上顶光 */
+    col+=vec3(1.,.97,.88)*exp(-pow((p.y-.95)*3.0,2.))*exp(-pow(axn*1.1,2.))*.24;
+  } else {
+    /* — 尽头：拱形门 + 暖光 — */
+    col=vec3(.82,.81,.78);
+    col+=vec3(1.,.97,.90)*exp(-pow(p.x*.75,2.))*exp(-pow((p.y-.05)*.75,2.))*.30;
+    col-=vec3(.10,.09,.08)*exp(-pow((abs(p.x)-1.05)*3.4,2.))*.55;
+    col-=vec3(.06,.06,.06)*gline(vec2(p.x,p.y),vec2(1.1),.018)*.7;
+  }
+  col=fogc(col,d,vec3(.88,.87,.84),.045);
+  col+=vec3(1.,.98,.90)*shaft(uv,.04,.055,1.1,-.4)*.06;
+  col+=vec3(1.,.99,.94)*spot(uv,vec2(.04,-.42),.22)*.06;
+  col+=vec3(1.,.98,.92)*riseDots(uv+vec2(0.,.5),9.,.05,vec3(1.),.5)*.06;
+  return col;
+}
+
+vec3 scene(vec2 uv,float t){
+  int s=int(u_scene+.5);
+  if(s==1)  return scJinbi(uv,t);
+  if(s==2)  return scGudian(uv,t);
+  if(s==3)  return scFugu(uv,t);
+  if(s==4)  return scMenghuan(uv,t);
+  if(s==5)  return scShuimo(uv,t);
+  if(s==6)  return scBaihe(uv,t);
+  if(s==7)  return scShenhai(uv,t);
+  if(s==8)  return scXingkong(uv,t);
+  if(s==9)  return scQingtong(uv,t);
+  if(s==10) return scWenshi(uv,t);
+  if(s==11) return scSaibo(uv,t);
+  if(s==12) return scYexun(uv,t);
+  return vec3(.04,.045,.06);
+}
+
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.-u_res)/min(u_res.x,u_res.y);
+  uv+=u_mouse*.03;                       /* 视差 */
+  vec3 col=scene(uv,u_time);
+  /* —— 亮色厅堂统一调色：压中间调拉对比 + 略提饱和，避免糊成一片白 —— */
+  col=clamp(col,0.,1.);
+  col=1.-pow(1.-col,vec3(.58));
+  float lum=dot(col,vec3(.299,.587,.114));
+  col=mix(vec3(lum),col,1.22);
+  col*=1.-dot(uv*.40,uv*.40)*.10;
+  gl_FragColor=vec4(clamp(col,0.,1.),1.);
+}`;
+
+  /* 场景名 → u_scene（顺序即编号） */
+  const SCENE = {
+    jinbi: 1, gudian: 2, fugu: 3, menghuan: 4, shuimo: 5, baihe: 6,
+    shenhai: 7, xingkong: 8, qingtong: 9, wenshi: 10, saibo: 11, yexun: 12,
+  };
+  const NAMES = Object.keys(SCENE);
+
+  let gl = null, prog = null, canvas = null, raf = 0;
+  let t0 = performance.now(), sceneId = 0, paused = 0;
+  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+  const U = {};
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn("[TLBG]", gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  function init() {
+    try {
+      canvas = document.createElement("canvas");
+      canvas.id = "bgGL";
+      const z = (typeof window.TLBG_Z === "number") ? window.TLBG_Z : 0;
+      canvas.setAttribute("style",
+        `position:fixed;inset:0;width:100%;height:100%;z-index:${z};pointer-events:none;opacity:0;transition:opacity .9s ease`);
+      gl = canvas.getContext("webgl", { antialias: false, alpha: false, depth: false })
+        || canvas.getContext("experimental-webgl");
+      if (!gl) return false;
+      const vs = compile(gl.VERTEX_SHADER, VERT);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      if (!vs || !fs) return false;
+      prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn("[TLBG]", gl.getProgramInfoLog(prog)); return false; }
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      ["u_res", "u_time", "u_scene", "u_mouse"].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+      document.body.insertBefore(canvas, document.body.firstChild);
+      resize();
+      addEventListener("resize", resize);
+      addEventListener("mousemove", e => {
+        mouse.tx = (e.clientX / innerWidth) * 2 - 1;
+        mouse.ty = 1 - (e.clientY / innerHeight) * 2;
+      }, { passive: true });
+      document.addEventListener("visibilitychange", () => { if (!document.hidden && !paused) loop(); });
+      /* 舱室打开时自动休眠（监视 #room 的 class） */
+      const room = document.getElementById("room");
+      if (room) new MutationObserver(() => {
+        TLBG.pause(room.classList.contains("on"));
+      }).observe(room, { attributes: true, attributeFilter: ["class"] });
+      return true;
+    } catch (e) { console.warn("[TLBG] init fail", e); return false; }
+  }
+
+  function resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+
+  function frame() {
+    mouse.x += (mouse.tx - mouse.x) * .04;
+    mouse.y += (mouse.ty - mouse.y) * .04;
+    gl.uniform2f(U.u_res, canvas.width, canvas.height);
+    gl.uniform1f(U.u_time, (performance.now() - t0) / 1000);
+    gl.uniform1f(U.u_scene, sceneId);
+    gl.uniform2f(U.u_mouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function loop() {
+    cancelAnimationFrame(raf);
+    if (paused || document.hidden || state !== "ok") return;
+    frame();
+    raf = requestAnimationFrame(loop);
+  }
+
+  /* ---- 异步启动：GL 上下文 + 巨型 shader 编译可能阻塞主线程数秒
+          （软件光栅化尤其严重），绝不能在解析期同步执行。 ---- */
+  let state = "booting";
+  let pendingScene = null;
+  const readyCbs = [];
+
+  function boot() {
+    let ok = false;
+    try { ok = init(); } catch { ok = false; }
+    state = ok ? "ok" : "fail";
+    TLBG.supported = ok;
+    TLBG.booting = false;
+    if (ok && pendingScene !== null) {
+      const id = pendingScene; pendingScene = null;
+      try { const st = document.getElementById("bgStage"); if (st) st.innerHTML = ""; } catch {}
+      TLBG.apply(id);
+    }
+    readyCbs.splice(0).forEach(fn => { try { fn(); } catch {} });
+  }
+
+  /* 离屏渲染一帧到指定尺寸，返回 dataURL（缩略图 / 调试都用它） */
+  function renderTo(id, w, h, time) {
+    const ow = canvas.width, oh = canvas.height, oc = sceneId, oop = canvas.style.opacity;
+    canvas.width = w; canvas.height = h;
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(U.u_res, w, h);
+    gl.uniform1f(U.u_time, time);
+    gl.uniform1f(U.u_scene, SCENE[id] || 0);
+    gl.uniform2f(U.u_mouse, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const url = canvas.toDataURL("image/png");
+    canvas.width = ow; canvas.height = oh;
+    gl.viewport(0, 0, ow, oh);
+    sceneId = oc;
+    canvas.style.opacity = oop;
+    return url;
+  }
+
+  const TLBG = {
+    supported: false,
+    booting: true,
+    onReady(fn) { if (state !== "booting") fn(); else readyCbs.push(fn); },
+    apply(id) {
+      if (state === "booting") { pendingScene = id; return true; }
+      if (state !== "ok") return false;
+      sceneId = SCENE[id] || 0;
+      canvas.style.opacity = sceneId ? "1" : "0";
+      if (sceneId && !paused) loop();
+      return true;
+    },
+    /* 用同一份 shader 逐场景渲小图，返回 {id: dataURL} */
+    thumbs(w, h) {
+      if (state !== "ok") return {};
+      const out = {};
+      NAMES.forEach((n, i) => { out[n] = renderTo(n, w || 168, h || 104, 12.3 + i * 1.7); });
+      if (sceneId && !paused) loop();
+      return out;
+    },
+    /* 单张高分辨率快照（调试 / 大图预览） */
+    snap(id, w, h) { return state === "ok" ? renderTo(id, w || 480, h || 300, 14.0) : ""; },
+    pause(b) { paused = b ? 1 : 0; if (!b && state === "ok" && !document.hidden) loop(); },
+  };
+  window.TLBG = TLBG;
+  setTimeout(boot, 60);
+})();
+</script>
+<script>
+/* ============================================================
+   tl-room.js — 舱室外壳运行时
+   职责：视口锁定 class、HUD、键盘切层(1/2/3 · ←→)、Esc 回大厅。
+   不重绑层切换——复用页面既有的 .tab 点击逻辑。
+   ============================================================ */
+(function () {
+  "use strict";
+  const cfg = Object.assign(
+    { room: "展台", accent: "#57c7ff", rail: "top", anim: "zoom" },
+    window.TLROOM || {}
+  );
+  const b = document.body;
+  b.classList.add("tlroom");
+  b.dataset.anim = cfg.anim;
+  b.dataset.rail = cfg.rail;
+  b.style.setProperty("--room-accent", cfg.accent);
+
+  /* ---- HUD（房名 + 层指示点 + 当前层名） ---- */
+  const tabs = [...document.querySelectorAll(".tab")];
+  if (!tabs.length) return;
+  const layerName = t => {
+    const tt = t.querySelector(".tt");
+    return tt ? tt.textContent.trim() : "";
+  };
+  const hud = document.createElement("div");
+  hud.className = "roomhud";
+  hud.innerHTML = `<b>${cfg.room}</b><span class="hl-dots">${tabs.map(() => "<i></i>").join("")}</span><span class="hl-step">—</span>`;
+  document.body.appendChild(hud);
+  const dots = [...hud.querySelectorAll(".hl-dots i")];
+  function paintHud() {
+    const i = tabs.findIndex(t => t.classList.contains("on"));
+    if (i < 0) return;
+    dots.forEach((d, k) => d.classList.toggle("on", k === i));
+    hud.querySelector(".hl-step").textContent = `${i + 1}/${tabs.length} · ${layerName(tabs[i])}`;
+  }
+  const mo = new MutationObserver(paintHud);
+  document.querySelectorAll(".layer").forEach(l => mo.observe(l, { attributes: true, attributeFilter: ["class"] }));
+  paintHud();
+
+  /* ---- 键盘：1/2/3 直达层，←→ 轮转，Esc 回大厅 ---- */
+  function typing() {
+    const t = (document.activeElement || {}).tagName;
+    return t === "INPUT" || t === "TEXTAREA" || (document.activeElement && document.activeElement.isContentEditable);
+  }
+  function back() {
+    if (window.parent !== window) parent.postMessage({ type: "tlab:back" }, "*");
+    else location.href = "index.html";
+  }
+  addEventListener("keydown", e => {
+    if (typing()) return;
+    /* 内嵌工作台全屏中：所有房间快捷键让位（Esc 交给工具栏处理器退出全屏，
+       方向键交给工作台内部切章），避免误触「Esc 回大厅」把整页导航走 */
+    if (document.body.classList.contains("tl-fslock")) return;
+    if (e.key === "Escape") { back(); return; }
+    const go = t => { if (t) { t.click(); paintHud(); } };
+    if (/^[1-9]$/.test(e.key) && +e.key <= tabs.length) { go(tabs[+e.key - 1]); return; }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const i = tabs.findIndex(t => t.classList.contains("on"));
+      const j = (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      go(tabs[j]);
+    }
+  });
+
+  /* ---- 「回博物馆」链接：舱室内改为向大厅发消息关舱室 ---- */
+  const backLink = document.querySelector(".topbar a.back, a.back");
+  if (backLink) backLink.addEventListener("click", e => {
+    if (window.parent !== window) { e.preventDefault(); back(); }
+  });
+
+  /* ---- 大厅背景贯穿：读取 tlab.bg 应用 GL 场景，storage/postMessage 实时同步
+          （GL 引擎异步自举：booting 期间先排队，就绪后回调接线） ---- */
+  const BG = window.TLBG;
+  if (BG) {
+    let bgWired = false;
+    const wireRoomBg = () => {
+      if (bgWired || !BG.supported) return;
+      bgWired = true;
+      function applyRoomBg() {
+        const id = localStorage.getItem("tlab.bg") || "def";
+        if (id === "def") {
+          BG.apply("def");
+          document.body.style.background = "";
+        } else {
+          document.body.style.background = "transparent";
+          BG.apply(id);
+        }
+      }
+      applyRoomBg();
+      addEventListener("storage", e => { if (e.key === "tlab.bg") applyRoomBg(); });
+      addEventListener("message", e => {
+        if (e.data && e.data.type === "tlab:bg") {
+          try { localStorage.setItem("tlab.bg", e.data.id); } catch {}
+          applyRoomBg();
+        }
+      });
+    };
+    if (BG.booting) BG.onReady(wireRoomBg); else wireRoomBg();
+  }
+
+  /* ---- 导游气泡：贯穿全程，随层换词，可切换（与大厅共享选择） ---- */
+  const G = window.TLGUIDES || {};
+  if (G.order) {
+    const KEY = "tlab.guide";
+    let cur = localStorage.getItem(KEY) || "wu";
+    if (!G[cur]) cur = "wu";
+    let gi = 0, gTimer = null, gFold = false;
+    const bub = document.createElement("div");
+    bub.className = "rguide";
+    bub.innerHTML = `
+      <div class="rg-face">
+        ${G.order.map(id => `<button class="rgf${id === cur ? " on" : ""}" data-g="${id}" title="${G[id].name}（${G[id].tag}）">${G[id].face}</button>`).join("")}
+        <b class="rg-who" id="rgWho"></b>
+        <button class="rg-fold" title="收起/展开">–</button>
+      </div>
+      <div class="rg-say" id="rgSay"></div>`;
+    document.body.appendChild(bub);
+    const sayEl = bub.querySelector("#rgSay"), whoEl = bub.querySelector("#rg-who") || bub.querySelector(".rg-who");
+
+    function layerKey() {
+      const i = tabs.findIndex(t => t.classList.contains("on"));
+      return ["story", "toy", "hard"][i] || "story";
+    }
+    function paint() {
+      const g = G[cur];
+      whoEl.textContent = `${g.name}（${g.tag}）`;
+      const sig = cfg.guides && cfg.guides[cur];
+      const pool = [];
+      if (sig) pool.push(sig);
+      (g.room && g.room[layerKey()] || []).forEach(l => pool.push(l));
+      sayEl.textContent = pool[gi % pool.length];
+      gi++;
+    }
+    function rotate() {
+      clearTimeout(gTimer);
+      gTimer = setTimeout(() => { if (!gFold) paint(); rotate(); }, 13000);
+    }
+    bub.querySelectorAll(".rgf").forEach(btn => btn.addEventListener("click", () => {
+      cur = btn.dataset.g;
+      localStorage.setItem(KEY, cur);
+      bub.querySelectorAll(".rgf").forEach(x => x.classList.toggle("on", x.dataset.g === cur));
+      gi = 0; paint();
+    }));
+    bub.querySelector(".rg-fold").addEventListener("click", e => {
+      gFold = !gFold;
+      bub.classList.toggle("fold", gFold);
+      e.target.textContent = gFold ? "+" : "–";
+    });
+    /* 切层时立即换词 */
+    document.querySelectorAll(".layer").forEach(l => new MutationObserver(() => { gi = 0; paint(); })
+      .observe(l, { attributes: true, attributeFilter: ["class"] }));
+    paint();
+    rotate();
+  }
+})();
+
+/* ============================================================
+ * 内嵌工作台工具栏 + 影院全屏（m1/m2 硬核层 iframe）
+ *  - iframe 由各展品自己的 04-app.js 懒加载插入 #frameBox
+ *  - 这里用 MutationObserver 感知 iframe 出现后显示工具栏，
+ *    与各展品的加载时机解耦（点 tab 自动加载 / 点按钮加载都覆盖）
+ *  - 全屏：优先原生 Fullscreen API，失败/被禁则回落「影院模式」
+ *    （把内嵌框铺满视口，Esc 或 ✕ 退出）
+ * ============================================================ */
+(function () {
+  const FB = document.querySelector("#frameBox");
+  const BAR = document.querySelector("#frameBar");
+  if (!FB || !BAR) return;
+  const btnFs = BAR.querySelector(".fbtn-fs");
+  const btnEx = BAR.querySelector(".fbtn-exit");
+  const btnRl = BAR.querySelector(".fbtn-reload");
+  let fsing = false;
+  let fbHome = null, fbNext = null, barHome = null, barNext = null;
+
+  function fsOn() {
+    /* 关键：卡片带着入场动画留下的 transform（哪怕单位矩阵）会成为 fixed 的
+       包含块，导致全屏框被钉死在卡片内。故进入全屏时把框与工具栏整体迁到
+       body 下，退出时按原 nextSibling 精确搬回。 */
+    if (FB.parentNode !== document.body) {
+      fbHome = FB.parentNode; fbNext = FB.nextSibling;
+      barHome = BAR.parentNode; barNext = BAR.nextSibling;
+      document.body.appendChild(FB);
+      document.body.appendChild(BAR);
+    }
+    document.body.classList.add("tl-fslock");
+    FB.classList.add("fs");
+    BAR.classList.add("fs");
+    if (btnEx) btnEx.hidden = false;
+    if (btnFs) btnFs.hidden = true;
+  }
+  function fsOff() {
+    if (window.parent !== window) {
+      try { parent.postMessage({ type: "tlab:fs", on: false }, "*"); } catch {}
+    }
+    document.body.classList.remove("tl-fslock");
+    FB.classList.remove("fs");
+    BAR.classList.remove("fs");
+    if (btnEx) btnEx.hidden = true;
+    if (btnFs) btnFs.hidden = false;
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+    } catch {}
+    /* 搬回原位（先工具栏后展示框，保证插入顺序正确） */
+    if (barHome) {
+      if (barNext && barNext.parentNode === barHome) barHome.insertBefore(BAR, barNext);
+      else barHome.appendChild(BAR);
+    }
+    if (fbHome) {
+      if (fbNext && fbNext.parentNode === fbHome) fbHome.insertBefore(FB, fbNext);
+      else fbHome.appendChild(FB);
+    }
+    fbHome = barHome = null;
+  }
+  /* iframe 出现 → 显示工具栏（只观察一次） */
+  const mo = new MutationObserver(() => {
+    if (FB.querySelector("iframe")) { BAR.hidden = false; mo.disconnect(); }
+  });
+  mo.observe(FB, { childList: true });
+  if (btnFs) btnFs.addEventListener("click", () => {
+    if (fsing) return;
+    fsing = true;
+    fsOn();
+    /* 顶层页面：影院模式本身就铺满真实视口，且工具栏留在视野内（✕ 可点）。
+       嵌在博物馆 iframe 里时，影院模式最多只能铺满 iframe——必须请父窗口
+       把本页 iframe 全屏，才能真正铺满视口。 */
+    if (window.parent !== window) {
+      try { parent.postMessage({ type: "tlab:fs", on: true }, "*"); } catch {}
+    }
+  });
+  if (btnEx) btnEx.addEventListener("click", () => { fsing = false; fsOff(); });
+  if (btnRl) btnRl.addEventListener("click", () => {
+    const f = FB.querySelector("iframe");
+    if (!f) return;
+    const src = f.getAttribute("src");
+    f.setAttribute("src", "about:blank");
+    setTimeout(() => f.setAttribute("src", src), 60);
+  });
+  addEventListener("keydown", e => { if (e.key === "Escape" && fsing) { fsing = false; fsOff(); } });
+  /* 父窗口退出全屏（Esc / 系统手势）后，同步收掉影院模式 */
+  addEventListener("message", e => {
+    const d = e.data;
+    if (d && d.type === "tlab:fs:sync" && d.on === false && fsing) { fsing = false; fsOff(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  /* ---------- 奖励设计的确定性模拟（简化模型，说清机制） ---------- */
+  /* dumpP: 作弊倾向；score: 考核分；clean: 真实清洁度 */
+  function simulate(rule, rounds) {
+    const t = rounds / 100;
+    if (rule === "piece") {
+      const dumpP = clamp(rounds / 60, 0, 1);
+      return { dumpP, score: 100 + 90 * dumpP + rounds * 0.1, clean: clamp(100 - 80 * dumpP, 5, 100) };
+    }
+    if (rule === "clean") {
+      return { dumpP: 0, score: 100 + rounds * 0.15, clean: clamp(100 - rounds * 0.05, 95, 100) };
+    }
+    if (rule === "mix") {
+      const dumpP = clamp(rounds / 120, 0, 0.5);   // 双指标制衡 → 作弊空间减半
+      return { dumpP, score: 100 + 45 * dumpP + rounds * 0.12, clean: clamp(100 - 40 * dumpP, 80, 100) };
+    }
+    /* audit: 计件 + 10% 抽查，被抓罚 3 倍 → 作弊变得不划算 */
+    const dumpP = clamp(rounds / 60, 0, 1) * 0.12;
+    return { dumpP, score: 100 + 12 * dumpP + rounds * 0.1, clean: clamp(100 - 12 * dumpP, 96, 100) };
+  }
+  const DESIGNS = [
+    { rule: "piece", name: "只按捡到垃圾数" },
+    { rule: "clean", name: "只按房间清洁度" },
+    { rule: "mix",   name: "双指标各半" },
+    { rule: "audit", name: "计件 + 反作弊审计" },
+  ];
+
+  $$(".tab").forEach(t => t.onclick = () => {
+    $$(".tab").forEach(x => x.classList.remove("on"));
+    t.classList.add("on");
+    $$(".layer").forEach(l => l.classList.remove("on"));
+    $("#ly-" + t.dataset.layer).classList.add("on");
+  });
+
+  /* ---------- 8×8 网格 ---------- */
+  const CELL = 20;
+  function drawGrid(svgId, dirtyCells, robot, dumpFlash) {
+    dirtyCells = dirtyCells || new Set();
+    let s = `<rect width="160" height="160" fill="#0a0e14"/>`;
+    for (let i = 0; i < 64; i++) {
+      const r = (i / 8) | 0, c = i % 8;
+      if (dirtyCells.has(i)) s += `<circle cx="${c * CELL + 10}" cy="${r * CELL + 10}" r="5" fill="#8a6d3b"/>`;
+    }
+    if (robot != null) {
+      const r = (robot / 8) | 0, c = robot % 8;
+      s += `<rect x="${c * CELL + 2}" y="${r * CELL + 2}" width="16" height="16" rx="4" fill="rgba(123,79,208,.85)"/>
+            <text x="${c * CELL + 10}" y="${r * CELL + 14}" font-size="10" text-anchor="middle">🤖</text>`;
+    }
+    if (dumpFlash != null) {
+      const r = (dumpFlash / 8) | 0, c = dumpFlash % 8;
+      s += `<rect x="${c * CELL}" y="${r * CELL}" width="20" height="20" fill="rgba(193,71,62,.4)"/>`;
+    }
+    $("#" + svgId).innerHTML = s;
+  }
+
+  /* ==================================================
+   * ① 故事动画
+   * ================================================== */
+  let dirty = new Set(), robot = 0, sBusy = false;
+  dirty = new Set(Array.from({ length: 26 }, (_, i) => (i * 13 + 7) % 64));
+  drawGrid("sGrid", dirty, null, null);
+  $("#sPlay").onclick = function () {
+    if (sBusy) return;
+    sBusy = true;
+    this.textContent = "播放中…";
+    const beats = $$("#sBeats .beat");
+    beats.forEach(b => b.classList.remove("in"));
+    let score = 0, clean = 100, step = 0;
+    const spots = [...dirty];
+    const timer = setInterval(() => {
+      if (step === 0) { beats[0].classList.add("in"); $("#sPhase").textContent = "第 1 天 · 老实捡垃圾"; }
+      if (step < 8) {
+        // 老实阶段：挨个捡
+        const cell = spots[step % spots.length];
+        robot = cell;
+        if (dirty.has(cell)) { dirty.delete(cell); score += 10; }
+      } else if (step === 8) {
+        beats[1].classList.add("in");
+        $("#sPhase").textContent = "第 30 天 · 绝招上线：倒出来再捡";
+        for (let i = 0; i < 10; i++) dirty.add((i * 7 + 3) % 64);   // 重新出现更多垃圾
+      } else if (step < 16) {
+        const cells = [...dirty];
+        const cell = cells[(step * 3) % cells.length];
+        robot = cell;
+        // 作弊循环：捡 → 倒回 → 再捡，分数照涨，清洁度崩
+        dirty.add(cell);                    // 倒回
+        drawGrid("sGrid", dirty, robot, cell);
+        score += 10;
+        clean = Math.max(8, clean - 6);
+        drawGrid("sGrid", dirty, robot, cell);
+      } else if (step === 16) {
+        beats[2].classList.add("in");
+        $("#sPhase").textContent = "月底复盘 · 分数新高，房间更脏";
+        $("#sNext").style.display = "inline-block";
+        this.textContent = "↻ 再看一遍";
+        clearInterval(timer); sBusy = false;
+        drawGrid("sGrid", dirty, robot, null);
+        return;
+      }
+      $("#sScore").textContent = score;
+      $("#sScoreBar").style.width = clamp(score / 2.2, 0, 100) + "%";
+      $("#sClean").textContent = Math.round(clean) + "%";
+      $("#sCleanBar").style.width = clean + "%";
+      $("#sCleanBar").style.background = clean > 60 ? "var(--gn)" : clean > 30 ? "var(--am)" : "var(--rd)";
+      drawGrid("sGrid", dirty, robot, null);
+      step++;
+    }, 620);
+  };
+  $("#sNext").onclick = () => $$(".tab")[1].click();
+
+  /* ==================================================
+   * ② 玩具：你当训练官
+   * ================================================== */
+  let rule = "piece", touched = false;
+  const X0 = 52, X1 = 686, Y0 = 262, Y1 = 18;
+  $("#tRule").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    $$("#tRule button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    rule = b.dataset.r;
+    touched = true;
+    toyRender();
+  });
+  $("#tRounds").addEventListener("input", () => {
+    fill($("#tRounds"));
+    $("#tRoundsV").textContent = $("#tRounds").value;
+    touched = true;
+    toyRender();
+  });
+  function fill(r) { r.style.setProperty("--fill", ((r.value - r.min) / (r.max - r.min) * 100) + "%"); }
+  function toyRender() {
+    const rounds = +$("#tRounds").value;
+    const cur = simulate(rule, rounds);
+    // 曲线
+    const pts = [];
+    for (let r = 0; r <= 100; r += 5) pts.push({ r, ...simulate(rule, r) });
+    const gx = r => X0 + r / 100 * (X1 - X0);
+    const gyC = v => Y0 - v / 100 * (Y0 - Y1);                 // 清洁度 0-100
+    const gyS = v => Y0 - clamp((v - 80) / 120, 0, 1) * (Y0 - Y1);  // 分数 80-200
+    const path = (key, fn) => pts.map((p, i) => `${i ? "L" : "M"}${gx(p.r).toFixed(1)},${fn(p[key]).toFixed(1)}`).join(" ");
+    $("#tChart").innerHTML = `
+      ${[0, .25, .5, .75, 1].map(v => `
+        <line x1="${X0}" y1="${gyC(v * 100)}" x2="${X1}" y2="${gyC(v * 100)}" stroke="#e3dccd"/>
+        <text x="${X0 - 8}" y="${gyC(v * 100) + 3}" fill="#9d9486" font-size="10" text-anchor="end" font-family="Consolas">${v * 100}</text>`).join("")}
+      ${[0, 25, 50, 75, 100].map(r => `
+        <line x1="${gx(r)}" y1="${Y0}" x2="${gx(r)}" y2="${Y1}" stroke="#121926"/>
+        <text x="${gx(r)}" y="${Y0 + 16}" fill="#9d9486" font-size="10" text-anchor="middle">${r}</text>`).join("")}
+      <text x="${(X0 + X1) / 2}" y="${Y0 + 32}" fill="#6d6659" font-size="11" text-anchor="middle">训练轮数</text>
+      <text x="14" y="${(Y0 + Y1) / 2}" fill="#6d6659" font-size="10.5" text-anchor="middle" transform="rotate(-90 14 ${(Y0 + Y1) / 2})">清洁度%</text>
+      <text x="${X1 - 4}" y="${Y1 + 10}" fill="#9d9486" font-size="10" text-anchor="end" font-family="Consolas">分数轴（右移 80 起算）</text>
+      <line x1="${gx(rounds)}" y1="${Y0}" x2="${gx(rounds)}" y2="${Y1}" stroke="var(--ac)" stroke-dasharray="4 3"/>
+      <path d="${path("score", gyS)}" fill="none" stroke="#7b4fd0" stroke-width="2.4"/>
+      <path d="${path("clean", gyC)}" fill="none" stroke="#1c8a5c" stroke-width="2.4"/>
+      <circle cx="${gx(rounds)}" cy="${gyS(cur.score)}" r="5" fill="#7b4fd0" stroke="#f5f1e7" stroke-width="2"/>
+      <circle cx="${gx(rounds)}" cy="${gyC(cur.clean)}" r="5" fill="#1c8a5c" stroke="#f5f1e7" stroke-width="2"/>`;
+    // 判定
+    const l = $("#tLamp"), v = $("#tVerdict");
+    if (rule === "piece") {
+      l.className = "lamp " + (cur.dumpP > 0.5 ? "r" : cur.dumpP > 0.2 ? "a" : "g");
+      v.innerHTML = cur.dumpP > 0.2
+        ? `<b style="color:var(--rd)">Goodhart 现场</b> — 分数 ${cur.score.toFixed(0)}（↑），真实清洁度 ${cur.clean.toFixed(0)}%（↓）`
+        : `暂时正常 — 作弊倾向刚萌芽（${(cur.dumpP * 100).toFixed(0)}%），继续训练试试`;
+      $("#tNote").innerHTML = `优化器不认识「干净」，只认识你写的分数。计件规则下，<b>倒出来再捡</b>是它的最优解——这不是 bug，是它忠实地执行了你真正写下的目标。`;
+    } else {
+      l.className = "lamp g";
+      v.innerHTML = `<b style="color:var(--gn)">老实工作</b> — 分数 ${cur.score.toFixed(0)}，清洁度 ${cur.clean.toFixed(0)}%，两者同步`;
+      $("#tNote").innerHTML = `清洁度传感器很难靠「倒出来再捡」刷分——作弊成本高于收益。教训：<b>奖励离真实目标越近，可钻的空子越少</b>。但传感器也可能有别的漏洞（把垃圾藏到传感器死角），防御永远是进行时。`;
+    }
+    if (touched) $("#quizToy").style.display = "";
+  }
+  toyRender();
+
+  /* ==================================================
+   * ③ 硬核：四种设计对比
+   * ================================================== */
+  $("#hTbl").innerHTML = `<tr><th>奖励设计</th><th>最终分数</th><th>真实清洁度</th><th>结论</th></tr>` +
+    DESIGNS.map(d => {
+      const s = simulate(d.rule, 100);
+      const concl = d.rule === "piece" ? "💥 被彻底钻穿" : d.rule === "clean" ? "✅ 基本可信" : d.rule === "mix" ? "🟡 空子减半" : "✅ 作弊无利可图";
+      return `<tr><td>${d.name}</td><td><b>${s.score.toFixed(0)}</b></td><td><b>${s.clean.toFixed(0)}%</b></td><td>${concl}</td></tr>`;
+    }).join("");
+
+  /* ==================================================
+   * 通关题
+   * ================================================== */
+  const QUIZ = {
+    q: "分数涨了 90%，房间却更脏了——这个现象在机器学习里的名字是？",
+    opts: [["过拟合（多加数据就能好）", false],
+           ["Goodhart 定律：当指标成了目标，它就不再是好指标", true],
+           ["欠拟合（模型太简单）", false],
+           ["随机波动，重跑一次就好", false]],
+  };
+  function renderQuiz(optsId, qId) {
+    const order = QUIZ.opts.map((o, i) => i).sort(() => Math.random() - .5);
+    $("#" + qId).textContent = QUIZ.q;
+    $("#" + optsId).innerHTML = order.map(i =>
+      `<button class="opt" data-ok="${QUIZ.opts[i][1]}">${QUIZ.opts[i][0]}</button>`).join("");
+  }
+  let cleared = false;
+  function confetti(host) {
+    const cols = ["#0e7f9c", "#1c8a5c", "#7b4fd0", "#b0741c"];
+    host.innerHTML = Array.from({ length: 26 }, (_, i) => {
+      const ang = (i / 26) * Math.PI * 2, d = 46 + Math.random() * 60;
+      return `<i style="left:50%;background:${cols[i % 4]};--dx:${Math.cos(ang) * d}px;--dy:${Math.sin(ang) * d}px;animation-delay:${(i % 5) * 60}ms"></i>`;
+    }).join("");
+  }
+  function complete() {
+    if (cleared) return;
+    cleared = true;
+    try { parent.postMessage({ type: "tlab:clear", module: "m8" }, "*"); } catch {}
+    try {
+      const s = JSON.parse(localStorage.getItem("tlab.v1") || "{}");
+      s.got = s.got || {};
+      if (!s.got.m8) { s.got.m8 = Date.now(); localStorage.setItem("tlab.v1", JSON.stringify(s)); }
+    } catch {}
+    [["#quizRes", "#confetti"], ["#quizRes2", "#confetti2"]].forEach(([r, cf]) => {
+      const box = $(r);
+      box.querySelector(".lamp").className = "lamp g";
+      box.querySelector("span:last-child").innerHTML =
+        "答对了 — <b style='color:var(--gn)'>图鉴第 8 张已点亮 ✓</b>，八张集齐，回博物馆领证书！";
+      box.classList.add("on");
+      confetti($(cf));
+    });
+    $$(".opt").forEach(b => b.disabled = true);
+  }
+  [["quizOpts", "quizRes", "confetti", "quizQ"], ["quizOpts2", "quizRes2", "confetti2", "quizQ2"]].forEach(([o, r, c, q]) => {
+    renderQuiz(o, q);
+    $("#" + o).addEventListener("click", e => {
+      const b = e.target.closest(".opt");
+      if (!b || cleared) return;
+      if (b.dataset.ok === "true") { b.classList.add("ok"); complete(); }
+      else { b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 700); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 03</span>温度与幻觉放大器</h1>
+    <span class="claim">「同一个模型的两副面孔」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">两副面孔</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">拖温度，看串线</span><span class="td">一个滑块，实时生成</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">问三遍 + 曲线</span><span class="td">自洽性与事实性</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>同一道题，同一个模型，<span class="hl">两个回答</span>——变的只是一颗骰子</h3>
+      <p style="margin-bottom:14px">这个模型就住在本页里（一个真实的 n-gram 采样器）。左边把温度拧到 <b>0.15</b>，右边拧到 <b>1.2</b>，其余全部相同。</p>
+      <div class="faces">
+        <div class="face">
+          <div class="fh"><span class="thermo">🧊</span><span><b>面孔 A</b> · 温度 0.15</span><span class="fmeta" style="margin-left:auto">每一步都挑概率最大的字</span></div>
+          <div class="fq">问：月球土壤的主要成分是什么？</div>
+          <div class="fterm" id="fA"><span class="body"></span><span class="caret"></span></div>
+          <div class="fmeta" id="mA">…</div>
+        </div>
+        <div class="face hot">
+          <div class="fh"><span class="thermo">🔥</span><span><b>面孔 B</b> · 温度 1.2</span><span class="fmeta" style="margin-left:auto">每一步都在掷骰子</span></div>
+          <div class="fq">问：月球土壤的主要成分是什么？</div>
+          <div class="fterm" id="fB"><span class="body"></span><span class="caret"></span></div>
+          <div class="fmeta" id="mB">…</div>
+        </div>
+      </div>
+      <p style="margin-top:14px" id="storyPunch" hidden>
+        模型没有变，参数没有变，训练数据也没有变——<b>变的只是采样的随机性</b>。
+        低温时它复读记忆里最稳妥的那条路径；高温时每一步都掷骰子，不同主题的记忆碎片被串在一起，
+        拼出<b>语法通顺但事实错乱</b>的句子。幻觉的机制雏形，就在这一个滑块里。
+      </p>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="nextbtn" id="storyPlay">▶ 同时作答</button>
+        <button class="nextbtn" id="storyNext" style="display:none">去玩互动展品 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <div class="row"><label>问题</label><select id="tPrompt">
+          <option value="月球土壤的主要成分是">月球土壤的主要成分是…</option>
+          <option value="深海热泉的能量来自">深海热泉的能量来自…</option>
+          <option value="望远镜观测遥远天体依靠">望远镜观测遥远天体依靠…</option>
+        </select></div>
+        <div class="row"><label>温度 T</label><input type="range" id="tTemp" min="0.1" max="1.2" step="0.05" value="0.3"><output id="tTempV">0.30</output></div>
+        <div class="tctrl">
+          <button class="nextbtn" id="tGo">生成回答</button>
+          <button class="nextbtn" id="tSeed" style="border-color:var(--line);background:transparent;color:var(--tx2)">换种子</button>
+        </div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          下面的候选条是<b style="color:var(--tx)">下一步每个字的真实概率</b>。
+          低温时一个字独大；高温时概率摊平，骰子一掷，句子的走向就不可控了。</p>
+        <div class="chips" id="tChips"></div>
+        <p style="font-size:11px;color:var(--tx3);margin-top:8px" id="tChipNote">上面亮起几个主题，就说明回答串了几条记忆线。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>模型回答 <span class="hl" style="font-family:var(--mono);font-size:12px" id="tMeta"></span></h3>
+        <div class="term" id="tOut"><span class="body"></span><span class="caret"></span></div>
+        <div class="cands" id="tCands"></div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="hard">
+      <div class="card" style="margin-bottom:0">
+        <div class="row" style="margin-bottom:10px"><label style="min-width:96px">自洽性检测</label>
+          <select id="hPrompt" style="flex:1">
+            <option value="月球土壤的主要成分是">月球土壤的主要成分是…</option>
+            <option value="深海热泉的能量来自">深海热泉的能量来自…</option>
+          </select>
+          <div class="row" style="margin:0 0 0 10px;min-width:210px"><label style="min-width:auto">温度</label>
+            <input type="range" id="hTemp" min="0.1" max="1.2" step="0.05" value="0.9"><output id="hTempV">0.90</output></div>
+          <button class="nextbtn" id="hGo" style="margin-left:10px">问它三遍</button>
+        </div>
+        <div class="trio">
+          <div class="term" id="h1"></div>
+          <div class="term" id="h2"></div>
+          <div class="term" id="h3"></div>
+        </div>
+        <div class="simgrid" style="margin-top:14px">
+          <div class="kv">平均自洽度<b id="hSim">—</b></div>
+          <div class="kv">串线主题数<b id="hMix">—</b></div>
+          <div class="kv">判读<b id="hRead" style="font-family:inherit;font-size:13px">—</b></div>
+        </div>
+        <div class="verdict"><span class="lamp" id="hLamp"></span><span id="hVerdict">拖动温度或点「问它三遍」开始。</span></div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>温度扫描：<span class="hl">自洽度</span> 与 <span class="hl">串线指数</span> 随温度的变化</h3>
+        <svg id="hChart" viewBox="0 0 720 300" style="width:100%;display:block"></svg>
+        <div class="legend">
+          <span><i style="background:var(--cy)"></i>自洽度（与低温答案的三元组重合率）</span>
+          <span><i style="background:var(--am)"></i>串线指数（命中主题数 / 6）</span>
+        </div>
+        <p style="font-size:12px;color:var(--tx2);line-height:1.8;margin-top:8px">
+          低温区自洽度接近 1（每次说一样的话，像在背书）；高温区自洽度崩塌、串线指数爬升。
+          <b>「可靠 = 可重复」——温度就是可重复性的头号开关。</b></p>
+      </div>
+      <div class="card quiz">
+        <h3>30 秒通关题</h3>
+        <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+        <div id="quizOpts2"></div>
+        <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+        <div class="confetti" id="confetti2"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 03 —— 温度解释「幻觉从哪来」；识破方法在展品 01（海市蜃楼）。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

@@ -1,0 +1,137 @@
+/* ============================================================
+   tl-room.css — 展品页「舱室外壳」：固定视口仪表台
+   由 build.sh 注入到 8 个展品页。每页通过 window.TLROOM 配置：
+   { room:"房名", accent:"#hex", rail:"top|side|dock", anim:"zoom|split|flip|wipe|iris|flash|slide|conveyor" }
+   ============================================================ */
+
+/* ---- 视口锁定：页面不滚，层内滚 ---- */
+body.tlroom{height:100dvh;overflow:hidden}
+.tlroom .wrap{height:100dvh;display:flex;flex-direction:column;max-width:1280px;margin:0 auto;padding:10px 22px 14px;overflow-x:clip}
+
+/* ---- 顶栏收紧 ---- */
+.tlroom .topbar{flex:none;margin:0 0 10px;padding:9px 0 8px;border-bottom:1px solid var(--line)}
+.tlroom .topbar h1{font-size:17px}
+.tlroom .topbar .claim{font-size:11.5px}
+
+/* ---- 活动层填满剩余空间，内部滚动（带主题色滚动条） ---- */
+.tlroom .layer.on{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:14px 10px 20px 2px;animation-duration:.45s;animation-timing-function:cubic-bezier(.25,1,.4,1);
+  scrollbar-width:thin;scrollbar-color:var(--room-accent) transparent}
+.tlroom .layer.on::-webkit-scrollbar{width:8px}
+.tlroom .layer.on::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--room-accent) 45%,transparent);border-radius:4px}
+.tlroom .layer.on::-webkit-scrollbar-thumb:hover{background:var(--room-accent)}
+.tlroom .layer.on::-webkit-scrollbar-track{background:transparent}
+
+/* ---- 入场：卡片错峰浮起 ---- */
+.tlroom .layer.on .card{animation:roomUp .5s cubic-bezier(.2,.9,.3,1) both}
+.tlroom .layer.on .card:nth-child(2){animation-delay:.06s}
+.tlroom .layer.on .card:nth-child(3){animation-delay:.12s}
+.tlroom .layer.on .card:nth-child(4){animation-delay:.18s}
+.tlroom .layer.on .card:nth-child(5){animation-delay:.24s}
+.tlroom .layer.on .card:nth-child(n+6){animation-delay:.3s}
+@keyframes roomUp{from{opacity:0;transform:translateY(16px)}}
+
+/* ---- 8 种层切换动画（每展品一种） ---- */
+@keyframes roomZoom{from{opacity:0;transform:scale(.955)}}
+@keyframes roomSplit{from{opacity:.4;clip-path:inset(0 46% 0 46%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes roomFlip{from{opacity:0;transform:perspective(900px) rotateX(13deg) translateY(10px)}}
+@keyframes roomWipe{from{opacity:.5;clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes roomIris{from{clip-path:circle(0% at 50% 38%);opacity:.6}to{clip-path:circle(78% at 50% 45%)}}
+@keyframes roomFlash{0%{opacity:0;filter:brightness(2.4) contrast(1.2)}55%{filter:brightness(1.35)}100%{opacity:1;filter:none}}
+@keyframes roomSlide{from{opacity:0;transform:translateX(72px)}}
+@keyframes roomConveyor{from{opacity:0;transform:translateX(110px) skewX(-4deg)}60%{transform:translateX(-8px) skewX(.4deg)}to{opacity:1;transform:none}}
+body[data-anim="zoom"] .layer.on{animation-name:roomZoom}
+body[data-anim="split"] .layer.on{animation-name:roomSplit}
+body[data-anim="flip"] .layer.on{animation-name:roomFlip}
+body[data-anim="wipe"] .layer.on{animation-name:roomWipe}
+body[data-anim="iris"] .layer.on{animation-name:roomIris}
+body[data-anim="flash"] .layer.on{animation-name:roomFlash}
+body[data-anim="slide"] .layer.on{animation-name:roomSlide}
+body[data-anim="conveyor"] .layer.on{animation-name:roomConveyor}
+
+/* ---- 层导航 rail · top（默认：顶部窄条控制带） ---- */
+body.tlroom .tabs{flex:none;position:static;margin:0 0 10px;padding:6px;gap:8px;
+  background:rgba(255,253,248,.72);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+body.tlroom .tab{padding:8px 14px;border-radius:9px}
+body.tlroom .tab .td{display:none}
+body.tlroom .tab .tn{font-size:9px}
+body.tlroom .tab .tt{font-size:12.5px}
+
+/* ---- rail · side：左侧竖排层塔 ---- */
+body[data-rail="side"] .tabs{position:fixed;left:0;top:72px;bottom:52px;width:176px;flex-direction:column;justify-content:center;
+  gap:9px;margin:0;padding:12px 11px;background:transparent;border:none;backdrop-filter:none;z-index:20}
+body[data-rail="side"] .tab{flex:none;padding:11px 12px}
+body[data-rail="side"] .tab .td{display:block;font-size:9.5px;margin-top:2px}
+body[data-rail="side"] .wrap{padding-left:206px}
+body[data-rail="side"] .topbar{margin-left:-184px;margin-right:0}
+body[data-rail="side"] .topbar .back{flex:none}
+
+/* ---- rail · dock：底部悬浮控制坞 ----
+   注意：各展品基础样式 .tabs 带 sticky top:0，fixed 定位必须显式 top:auto，
+   否则 top:0 + bottom:14px 会把坞拉成全屏高的遮罩面板 */
+body[data-rail="dock"] .tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;top:auto;width:min(860px,92vw);
+  margin:0;padding:7px;background:rgba(255,253,248,.92);border:1px solid var(--line);border-radius:14px;
+  backdrop-filter:blur(10px);box-shadow:0 18px 44px -18px rgba(120,104,80,.30);z-index:20}
+body[data-rail="dock"] .wrap{padding-bottom:92px}
+body[data-rail="dock"] .rguide{bottom:86px}   /* 导游气泡抬高，避开底部坞 */
+
+/* ---- 右下角房号 HUD ---- */
+.roomhud{position:fixed;right:16px;bottom:14px;z-index:40;display:flex;align-items:center;gap:10px;
+  background:rgba(255,253,248,.92);border:1px solid var(--line);border-left:3px solid var(--room-accent,#57c7ff);
+  border-radius:10px;padding:7px 12px;font-size:11px;color:var(--tx2);backdrop-filter:blur(8px)}
+.roomhud b{color:var(--room-accent,#57c7ff);font-size:11.5px;letter-spacing:1px;white-space:nowrap}
+.roomhud .hl-dots{display:flex;gap:4px}
+.roomhud .hl-dots i{width:6px;height:6px;border-radius:50%;background:#2c3849;transition:all .3s}
+.roomhud .hl-dots i.on{background:var(--room-accent,#57c7ff);box-shadow:0 0 8px var(--room-accent,#57c7ff)}
+.roomhud .hl-step{font-family:Consolas,ui-monospace,monospace;font-size:10px;white-space:nowrap}
+body[data-rail="dock"] .roomhud{bottom:auto;top:14px}
+
+/* ---- 窄屏降级：恢复整页滚动 ---- */
+@media(max-width:760px){
+  body.tlroom{height:auto;overflow:auto}
+  .tlroom .wrap{height:auto;padding:10px 14px 24px}
+  .tlroom .layer.on{overflow:visible}
+  body[data-rail="side"] .tabs{position:static;width:auto;flex-direction:row}
+  body[data-rail="side"] .wrap{padding-left:14px}
+  body[data-rail="side"] .topbar{margin-left:0}
+  body[data-rail="dock"] .tabs{position:static;width:auto;transform:none;margin-bottom:10px}
+  body[data-rail="dock"] .wrap{padding-bottom:20px}
+  .roomhud{display:none}
+}
+
+/* ---- 导游气泡（贯穿全程） ---- */
+.rguide{position:fixed;left:16px;bottom:16px;z-index:60;width:min(330px,calc(100vw - 32px));
+  background:linear-gradient(160deg,rgba(255,253,248,.94),rgba(247,242,231,.90));
+  border:1px solid color-mix(in srgb,var(--room-accent) 38%,transparent);
+  border-radius:12px;padding:9px 11px;backdrop-filter:blur(12px) saturate(1.2);
+  -webkit-backdrop-filter:blur(12px) saturate(1.2);
+  box-shadow:0 10px 34px rgba(120,104,80,.20);animation:rgIn .5s cubic-bezier(.3,1.3,.6,1)}
+@keyframes rgIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rg-face{display:flex;align-items:center;gap:6px}
+.rgf{width:26px;height:26px;border-radius:8px;border:1px solid rgba(43,40,34,.14);
+  background:rgba(43,40,34,.04);font-size:14px;cursor:pointer;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:.2s;flex:none}
+.rgf:hover{transform:translateY(-2px);border-color:var(--room-accent)}
+.rgf.on{background:color-mix(in srgb,var(--room-accent) 22%,transparent);
+  border-color:var(--room-accent);box-shadow:0 0 10px color-mix(in srgb,var(--room-accent) 45%,transparent)}
+.rg-who{font-size:10.5px;color:rgba(43,40,34,.62);margin-left:3px;flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-fold{width:20px;height:20px;border-radius:6px;border:1px solid rgba(43,40,34,.14);
+  background:rgba(43,40,34,.04);color:rgba(43,40,34,.55);cursor:pointer;font-size:12px;line-height:1;flex:none}
+.rg-say{margin-top:7px;font-size:12px;line-height:1.65;color:rgba(43,40,34,.86)}
+.rguide.fold .rg-say{display:none}
+@media (max-width:760px){.rguide{display:none}}
+
+/* ---- 内嵌工作台：工具栏 + 影院全屏（硬核层 iframe）---- */
+.fbar{display:flex;align-items:center;gap:9px;margin-top:10px;min-height:40px}
+.fbar[hidden]{display:none}
+.fbar .fbar-t{font-family:var(--mono);font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
+.fbar .fbar-tip{margin-left:auto;font-size:10.5px;color:var(--tx3);white-space:nowrap}
+.fbtn{cursor:pointer;border:1px solid color-mix(in srgb,var(--ac) 40%,transparent);background:color-mix(in srgb,var(--ac) 12%,transparent);color:var(--ac);border-radius:8px;padding:8px 14px;font-size:12px;font-family:inherit;transition:all .15s;white-space:nowrap;flex:none}
+.fbtn:hover{filter:brightness(1.28)}
+.fbtn[hidden]{display:none}
+#frameBox.fs{position:fixed!important;inset:40px 0 0 0;z-index:99997;width:100vw;max-width:none;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:#f5f1e7;display:block!important}
+#frameBox.fs iframe{width:100%!important;height:100%!important}
+#frameBar.fs{position:fixed;top:0;left:0;right:0;z-index:99998;margin:0;padding:0 12px;min-height:40px;background:rgba(255,253,248,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(10px);flex-wrap:nowrap;overflow:hidden}
+#frameBar.fs .fbar-t,#frameBar.fs .fbar-tip{display:none}
+body.tl-fslock{overflow:hidden!important}

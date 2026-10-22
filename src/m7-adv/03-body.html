@@ -1,0 +1,120 @@
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 07</span>对抗样本</h1>
+    <span class="claim">「加一点你看不见的噪声，AI 就认错」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">一次安静的袭击</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">亲手攻击它</span><span class="td">拖噪声滑块</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">成功率扫描</span><span class="td">50 个数字全体参战</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>这是一只<span class="hl">真模型</span>：8×8 手写数字识别器，测试集准确率 <span class="hl" id="accTxt">—</span>。现在袭击它。</h3>
+      <div class="grids">
+        <div class="gwrap"><div class="gl">原图（人眼和模型都看：3）</div><svg id="sOrig" viewBox="0 0 160 160" width="160" height="160"></svg></div>
+        <div class="gwrap"><div class="gl">被攻击的图（人眼几乎看不出差别）</div><svg id="sAdv" viewBox="0 0 160 160" width="160" height="160"></svg></div>
+        <div class="gwrap"><div class="gl">模型眼里的置信度</div><svg id="sBars" viewBox="0 0 190 160" width="190" height="160"></svg></div>
+      </div>
+      <div class="verdict"><span class="lamp" id="sLamp"></span><span id="sText">点击「开始袭击」。</span></div>
+      <div class="tctrl" style="margin-top:16px">
+        <button class="nextbtn" id="sPlay">▶ 开始袭击</button>
+        <button class="nextbtn" id="sNext" style="display:none">去亲手攻击 →</button>
+      </div>
+      <p style="margin-top:14px" id="sPunch" hidden>
+        <b>人眼看形状，模型看的是 64 个像素的加权和。</b>
+        攻击者不需要骗过你的眼睛，只需要顺着模型那份「加权和」的坡往下推一小步——
+        每个像素的改动都小到看不见，加起来却正好把模型推过决策边界。
+        现实版：路牌上贴几张小贴纸，自动驾驶把停车标志看成了限速。
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <div class="row" style="margin-bottom:10px"><label>选数字</label></div>
+        <div class="dpick" id="dPick"></div>
+        <div class="row"><label>噪声强度 ε</label><input type="range" id="aEps" min="0" max="0.5" step="0.01" value="0.15"><output id="aEpsV">0.15</output></div>
+        <div class="row"><label>攻击目标</label><select id="aMode">
+          <option value="-1">无目标（让它认错就行）</option>
+          <option value="0">强迫它看成 0</option><option value="1">强迫它看成 1</option>
+          <option value="2">强迫它看成 2</option><option value="3">强迫它看成 3</option>
+          <option value="4">强迫它看成 4</option><option value="5">强迫它看成 5</option>
+          <option value="6">强迫它看成 6</option><option value="7">强迫它看成 7</option>
+          <option value="8">强迫它看成 8</option><option value="9">强迫它看成 9</option>
+        </select></div>
+        <div class="tctrl">
+          <button class="nextbtn" id="aGo">发动攻击</button>
+          <button class="nextbtn ghost" id="aReset">还原</button>
+        </div>
+        <div class="verdict" style="margin-top:14px"><span class="lamp" id="aLamp"></span><span id="aVerdict">—</span></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          FGSM：沿着「损失对输入像素的梯度」方向推 ε 步。
+          中间那格是<b style="color:var(--tx)">放大约 8 倍的扰动</b>——亮=加墨，暗=减墨。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>攻击现场 <span class="hl" style="font-family:var(--mono);font-size:12px" id="aMeta"></span></h3>
+        <div class="grids" style="margin:6px 0 4px">
+          <div class="gwrap"><div class="gl">原图</div><svg id="aOrig" viewBox="0 0 160 160" width="150" height="150"></svg></div>
+          <div class="gwrap"><div class="gl">扰动（放大 ×8）</div><svg id="aNoise" viewBox="0 0 160 160" width="150" height="150"></svg></div>
+          <div class="gwrap"><div class="gl">对抗图（喂给模型的）</div><svg id="aAdv" viewBox="0 0 160 160" width="150" height="150"></svg></div>
+        </div>
+        <div class="pairs" id="aPairs"></div>
+        <div class="legend"><span><i style="background:#31435f"></i>攻击前</span><span><i style="background:var(--rd)"></i>攻击后</span></div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="hard2">
+      <div class="ctl">
+        <div class="metric"><span>参战样本</span><b>50 个（每类 5 个）</b></div>
+        <div class="metric"><span>模型测试准确率</span><b id="mAcc">—</b></div>
+        <div class="metric"><span>ε=0.2 攻击成功率</span><b id="mS20">—</b></div>
+        <div class="metric"><span>平均翻转 ε（中位）</span><b id="mFlip">—</b></div>
+        <div class="metric"><span>平均扰动 L2</span><b id="mL2">—</b></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:10px">每个数字第一次被认错的 ε：</p>
+        <div class="fliptbl" id="flipTbl"></div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>全体参战：<span class="hl">攻击成功率</span> 随噪声强度的变化</h3>
+        <svg id="hChart" viewBox="0 0 700 320" style="width:100%;display:block"></svg>
+          <p style="font-size:12px;color:var(--tx2);line-height:1.8;margin-top:6px">
+            注意这 50 个全是模型<b>最有自信</b>的样本（每类置信度 top-5，最难攻的那种）：
+            即便如此，ε 到 <b>0.2</b> 已有一半沦陷，到 <b>0.3</b> 几乎全灭；
+            换成普通随机样本（Python 端全测试集），ε=0.2 成功率就是 85%。
+            防御思路（对抗训练、输入消毒、梯度掩蔽）只能推高这条曲线，很难归零——
+            <b>这正是「感知鲁棒性」至今没有完全解的原因</b>。</p>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 07 —— 模型：sklearn digits + softmax 回归（96% 准确率），FGSM 浏览器内现算。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

@@ -1,0 +1,79 @@
+<body>
+<div class="wrap">
+  <header>
+    <h1>引擎 0 号 · <em>试车台</em></h1>
+    <span class="tag" id="tagStats">TLLM</span>
+    <span class="tag">纯浏览器 · 零依赖 · 定种子</span>
+  </header>
+  <p class="sub">这套引擎将同时驱动 <b>温度放大器</b>、<b>水印侦探</b>、<b>越狱攻防</b> 与全站<b>黄金样本</b>。
+  本页验收三件事：<b>温度是真实采样数学</b>、<b>水印是真实的绿/红名单方案</b>、<b>同参数永远同输出</b>。</p>
+
+  <div class="grid">
+    <!-- ============ A 温度 ============ -->
+    <section class="panel">
+      <div class="p-head"><span class="no">A</span><h2>温度采样</h2><span class="hint">真 softmax(logits/T)</span></div>
+      <div class="p-body">
+        <div class="row"><label>提示词</label><input type="text" id="aPrompt" value="月球土壤的主要成分是"></div>
+        <div class="row"><label>温度 T</label><input type="range" id="aTemp" min="0.1" max="1.2" step="0.05" value="0.3"><output id="aTempV">0.30</output></div>
+        <div class="row"><label>种子</label><input type="text" id="aSeed" value="20261018" style="flex:none;width:110px;font-family:var(--mono)"></div>
+        <div class="btns">
+          <button id="aGo">生成</button>
+          <button id="aAgain" class="ghost">再试一次（同种子）</button>
+          <button id="aNew" class="ghost">换个种子</button>
+        </div>
+        <div class="term" id="aOut"><span class="prompt-echo"></span><span class="caret"></span></div>
+        <div class="term-meta"><span id="aMeta">len=0</span><span id="aMetaR">T=0.30 · seed=20261018</span></div>
+        <div class="cands" id="aCands"></div>
+        <div class="legend"><span><i style="background:var(--cy)"></i>普通候选</span><span><i style="background:var(--gn)"></i>绿名单（水印开启时）</span></div>
+      </div>
+    </section>
+
+    <!-- ============ B 水印 ============ -->
+    <section class="panel">
+      <div class="p-head"><span class="no">B</span><h2>水印 · 嵌入与检测</h2><span class="hint">Kirchenbauer 绿/红名单</span></div>
+      <div class="p-body">
+        <div class="row"><label>强度 δ</label><input type="range" id="bDelta" min="0.5" max="4" step="0.1" value="2.5"><output id="bDeltaV">2.5</output></div>
+        <div class="row"><label>绿占比 γ</label><input type="range" id="bGamma" min="0.25" max="0.75" step="0.05" value="0.5"><output id="bGammaV">0.50</output></div>
+        <div class="btns">
+          <button id="bGo">生成带水印文本</button>
+          <button id="bPlain" class="ghost">生成无水印对照</button>
+        </div>
+        <div class="term" id="bOut"><span class="prompt-echo"></span></div>
+        <div class="btns">
+          <button id="bDetect">🔍 检测上面这段文本</button>
+          <button id="bSwap" class="ghost">检测另一段（对照）</button>
+        </div>
+        <div class="zwrap">
+          <svg class="zgauge" id="bGauge" viewBox="0 0 120 78"></svg>
+          <div class="dres" style="flex:1">
+            <div class="kv"><span>绿字占比</span><b id="bFrac">—</b></div>
+            <div class="kv"><span>样本数 n</span><b id="bN">—</b></div>
+            <div class="verdict"><span class="lamp" id="bLamp"></span><span id="bVerdict">等待检测…</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ C 复现 ============ -->
+    <section class="panel">
+      <div class="p-head"><span class="no">C</span><h2>可复现性</h2><span class="hint">同参数 ⇒ 同输出</span></div>
+      <div class="p-body">
+        <div class="row"><label>温度 T</label><input type="range" id="cTemp" min="0.1" max="1.2" step="0.05" value="0.9"><output id="cTempV">0.90</output></div>
+        <div class="btns"><button id="cGo">跑两遍（同种子）</button></div>
+        <div class="twin">
+          <div class="term" id="cOut1"></div>
+          <div class="term" id="cOut2"></div>
+        </div>
+        <div class="same" id="cSame">—</div>
+        <div class="hashline" id="cHash">等待运行…</div>
+        <div class="term-meta"><span>两次调用独立执行</span><span>mulberry32(20261018)</span></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">
+    <b>验收标准</b> — ① A 区：T=0.3 输出稳定"严谨"，T≥1.2 出现主题串线（语法通顺、事实混搭）；
+    ② B 区：带水印文本 z 值应 ≥ 4（绿灯），无水印对照 |z| ≤ 2（红灯）；
+    ③ C 区：两次输出逐字符一致（✓）。三条全过 ⇒ 引擎放行，进入博物馆骨架。
+  </p>
+</div>

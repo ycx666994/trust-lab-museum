@@ -1,0 +1,332 @@
+<!-- tl-lab-director v1：实验室负责人引导
+     由 build.sh 注入 </body> 前（晚于 vendor-shell，故层级在上）
+     配置从 window.__TLD_CFG 读，见 build.sh 里的 V1/V4 两份 -->
+<style>
+#tld{position:fixed;inset:0;z-index:999990;pointer-events:none;
+  --paper:#fdf9f0;--paper2:#f6f0e2;--ink:#2b2822;--ink2:#6d6659;--ink3:#9d9486;
+  --cy:#0e7f9c;--line:rgba(43,40,34,.16);--acc:#0e7f9c;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  opacity:0;transition:opacity .26s ease;font-feature-settings:"kern" 1}
+#tld.on{opacity:1}
+#tld .tld-spot{position:absolute;border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(3,5,9,.66),0 0 0 2px rgba(94,231,255,.62),0 0 30px rgba(94,231,255,.20);
+  transition:left .44s cubic-bezier(.16,1,.3,1),top .44s cubic-bezier(.16,1,.3,1),
+             width .44s cubic-bezier(.16,1,.3,1),height .44s cubic-bezier(.16,1,.3,1)}
+#tld .tld-card{position:absolute;pointer-events:auto;width:min(352px,calc(100vw - 26px));
+  background:linear-gradient(168deg,var(--paper),var(--paper2));
+  border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 24px 64px -22px rgba(0,0,0,.72),0 1px 0 rgba(255,255,255,.85) inset;
+  padding:13px 15px 12px;
+  transform:translateY(10px) scale(.984);opacity:0;
+  transition:transform .44s cubic-bezier(.16,1,.3,1),opacity .32s ease,
+             left .44s cubic-bezier(.16,1,.3,1),top .44s cubic-bezier(.16,1,.3,1)}
+#tld.on .tld-card{transform:none;opacity:1}
+/* 顶部一道强调色压边，像工作证的色条 */
+#tld .tld-card::before{content:"";position:absolute;left:15px;right:15px;top:0;height:2.5px;
+  border-radius:0 0 3px 3px;background:var(--acc);opacity:.85}
+
+#tld .tld-top{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+#tld .tld-face{flex:none;width:46px;height:46px;border-radius:50%;overflow:hidden;
+  background:#fffdf8;border:1.5px solid var(--acc);box-shadow:0 0 0 3px rgba(14,127,156,.10)}
+#tld .tld-face svg{display:block;width:100%;height:100%}
+#tld .tld-id{flex:1;min-width:0;line-height:1.25}
+#tld .tld-id b{display:block;font-size:14.5px;color:var(--ink);letter-spacing:.04em}
+#tld .tld-id i{display:block;font-style:normal;font-size:10.5px;color:var(--ink2);
+  letter-spacing:.06em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tld .tld-step{flex:none;font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;
+  color:var(--ink3);letter-spacing:.1em;align-self:flex-start;margin-top:3px}
+
+#tld .tld-t{margin:0 0 5px;font-size:14.5px;font-weight:650;color:var(--ink);letter-spacing:.01em}
+#tld .tld-b{margin:0;font-size:12.5px;line-height:1.72;color:#4a453c}
+#tld .tld-b em{font-style:normal;color:var(--acc);font-weight:600}
+
+#tld .tld-bar{height:2px;background:rgba(43,40,34,.10);border-radius:2px;margin:12px 0 10px;overflow:hidden}
+#tld .tld-fill{height:100%;width:0;background:var(--acc);border-radius:2px;
+  transition:width .44s cubic-bezier(.16,1,.3,1)}
+
+#tld .tld-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#tld .tld-skip{cursor:pointer;border:0;background:none;padding:4px 2px;font:inherit;
+  font-size:11px;color:var(--ink3);letter-spacing:.02em}
+#tld .tld-skip:hover{color:var(--ink2)}
+#tld .tld-nav{display:flex;gap:6px}
+#tld .tld-nav button{cursor:pointer;font:inherit;border-radius:8px;padding:6px 13px;
+  font-size:12px;transition:all .16s ease;border:1px solid var(--line);
+  background:rgba(43,40,34,.04);color:var(--ink2)}
+#tld .tld-nav button:hover{background:rgba(43,40,34,.09);color:var(--ink)}
+#tld .tld-nav .tld-next{background:var(--ink);border-color:var(--ink);color:#fdf9f0;font-weight:600}
+#tld .tld-nav .tld-next:hover{background:#000;border-color:#000}
+#tld .tld-prev[disabled]{opacity:.34;cursor:default}
+
+/* 常驻入口：关掉引导后还能叫回负责人 */
+#tldFab{position:fixed;right:14px;bottom:70px;z-index:999980;cursor:pointer;
+  display:flex;align-items:center;gap:6px;padding:7px 12px 7px 9px;border-radius:999px;
+  border:1px solid rgba(94,231,255,.30);background:rgba(9,13,20,.82);color:#cfe6f2;
+  font-family:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:11.5px;letter-spacing:.04em;backdrop-filter:blur(10px);
+  box-shadow:0 8px 26px -10px rgba(0,0,0,.8);transition:all .2s ease}
+#tldFab svg{display:block;width:15px;height:15px}
+#tldFab:hover{border-color:rgba(94,231,255,.62);color:#eaf6fc;transform:translateY(-1px)}
+#tldFab.hide{opacity:0;pointer-events:none;transform:translateY(6px)}
+
+/* 小视口（内嵌在博物馆卡片里时约 460–560 高）：压紧一点 */
+@media (max-height:600px){
+  #tld .tld-card{width:min(330px,calc(100vw - 22px));padding:11px 13px 10px}
+  #tld .tld-face{width:38px;height:38px}
+  #tld .tld-t{font-size:13.5px}
+  #tld .tld-b{font-size:12px;line-height:1.64}
+  #tld .tld-bar{margin:9px 0 8px}
+  #tldFab{bottom:62px;font-size:11px;padding:6px 10px 6px 8px}
+}
+</style>
+<script>
+(function () {
+  "use strict";
+  var C = window.__TLD_CFG;
+  if (!C) return;
+  /* v4 自带一套 6 步导览且首次访问自动弹；让位给负责人，避免两层遮罩打架 */
+  if (C.suppress) { try { localStorage.setItem(C.suppress, "1"); } catch (e) {} }
+
+  var KEY = "tl.dir." + C.id, seen = false;
+  try { seen = localStorage.getItem(KEY) === "1"; } catch (e) {}
+
+  var FACE = {
+    /* 阿衡：圆框眼镜、短寸、白大褂，偏冷青 */
+    wu:
+      '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect width="48" height="48" fill="#fffdf8"/>' +
+      '<path d="M7 47c1.5-8.4 8-12.9 17-12.9S39.5 38.6 41 47z" fill="#eee7d7" stroke="#2b2822" stroke-width="1.15"/>' +
+      '<path d="M19.6 34.4 24 39.6l4.4-5.2" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linejoin="round"/>' +
+      '<path d="M21.4 29.6h5.2v5.4h-5.2z" fill="#e9dcc2" stroke="#2b2822" stroke-width="1"/>' +
+      '<ellipse cx="24" cy="20.6" rx="8.1" ry="9.1" fill="#f4e6cc" stroke="#2b2822" stroke-width="1.2"/>' +
+      '<path d="M15.7 19.4c0-5.9 3.7-9.5 8.3-9.5s8.3 3.6 8.3 9.5c-1.7-3-4.2-4.4-8.3-4.4s-6.6 1.4-8.3 4.4z" fill="#2b2822"/>' +
+      '<circle cx="20.5" cy="21" r="3.15" fill="none" stroke="#2b2822" stroke-width="1.1"/>' +
+      '<circle cx="27.5" cy="21" r="3.15" fill="none" stroke="#2b2822" stroke-width="1.1"/>' +
+      '<path d="M23.6 21h.8" stroke="#2b2822" stroke-width="1.1"/>' +
+      '<circle cx="20.5" cy="21" r="1.05" fill="#0e7f9c"/><circle cx="27.5" cy="21" r="1.05" fill="#0e7f9c"/>' +
+      '<path d="M21.9 25.9c.9.8 3.3.8 4.2 0" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linecap="round"/>' +
+      '</svg>',
+    /* 纪岚：齐肩短发、细框、耳环，偏紫 */
+    cen:
+      '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect width="48" height="48" fill="#fffdf8"/>' +
+      '<path d="M7.5 47c1.4-8.2 7.8-12.6 16.5-12.6S39.1 38.8 40.5 47z" fill="#efe8da" stroke="#2b2822" stroke-width="1.15"/>' +
+      '<path d="M20 34.6 24 39.4l4-4.8" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linejoin="round"/>' +
+      '<path d="M21.6 29.4h4.8v5.6h-4.8z" fill="#e9dcc2" stroke="#2b2822" stroke-width="1"/>' +
+      '<ellipse cx="24" cy="20.8" rx="7.7" ry="8.8" fill="#f6e9d2" stroke="#2b2822" stroke-width="1.2"/>' +
+      '<path d="M16.3 21.4c-.9-6.6 2.4-11.6 7.7-11.6s8.6 5 7.7 11.6c-.6-1.4-.6-3.6-.6-3.6-2.2 1.1-4.4 1.5-7.1 1.5s-4.9-.4-7.1-1.5c0 0 0 2.2-.6 3.6z" fill="#2b2822"/>' +
+      '<path d="M16.6 21.6c-1.5 1.2-1.8 5.4-.5 8.6M31.4 21.6c1.5 1.2 1.8 5.4.5 8.6" fill="none" stroke="#2b2822" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<path d="M20.4 20.8h3.4M24.2 20.8h3.4" stroke="#2b2822" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<circle cx="20.6" cy="21.2" r=".95" fill="#7b4fd0"/><circle cx="27.4" cy="21.2" r=".95" fill="#7b4fd0"/>' +
+      '<path d="M22.2 25.8c.8.9 2.8.9 3.6 0" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linecap="round"/>' +
+      '<circle cx="32.2" cy="28.6" r="1.5" fill="#7b4fd0"/>' +
+      '</svg>'
+  };
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/>' +
+    '<path d="M4.6 20.4c.7-3.9 3.8-6 7.4-6s6.7 2.1 7.4 6"/></svg>';
+
+  /* ---------- 建 DOM ---------- */
+  var root = document.createElement("div");
+  root.id = "tld";
+  root.innerHTML =
+    '<div class="tld-spot"></div>' +
+    '<div class="tld-card">' +
+      '<div class="tld-top">' +
+        '<div class="tld-face">' + (FACE[C.face] || FACE.wu) + '</div>' +
+        '<div class="tld-id"><b></b><i></i></div>' +
+        '<div class="tld-step"></div>' +
+      '</div>' +
+      '<h4 class="tld-t"></h4>' +
+      '<p class="tld-b"></p>' +
+      '<div class="tld-bar"><div class="tld-fill"></div></div>' +
+      '<div class="tld-foot">' +
+        '<button class="tld-skip" type="button">不再提示</button>' +
+        '<div class="tld-nav">' +
+          '<button class="tld-prev" type="button">←</button>' +
+          '<button class="tld-next" type="button">下一步 →</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  if (C.accent) root.style.setProperty("--acc", C.accent);
+  document.body.appendChild(root);
+
+  var fab = document.createElement("button");
+  fab.id = "tldFab";
+  fab.type = "button";
+  fab.title = "叫回实验室负责人";
+  fab.innerHTML = ICON + "<span>负责人</span>";
+  document.body.appendChild(fab);
+
+  var spot = root.querySelector(".tld-spot"),
+      card = root.querySelector(".tld-card"),
+      elT = root.querySelector(".tld-t"),
+      elB = root.querySelector(".tld-b"),
+      elStep = root.querySelector(".tld-step"),
+      elFill = root.querySelector(".tld-fill"),
+      elPrev = root.querySelector(".tld-prev"),
+      elNext = root.querySelector(".tld-next"),
+      elSkip = root.querySelector(".tld-skip");
+
+  root.querySelector(".tld-id b").textContent = C.name;
+  root.querySelector(".tld-id i").textContent = C.role;
+
+  var i = -1, open = false, raf = 0;
+  var steps = C.steps || [];
+
+  function vis(el) {
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 4 && r.height > 4 && getComputedStyle(el).visibility !== "hidden";
+  }
+  function moveSpot(l, t, w, h) {
+    spot.style.left = l + "px"; spot.style.top = t + "px";
+    spot.style.width = w + "px"; spot.style.height = h + "px";
+  }
+  function moveCard(x, y) { card.style.left = x + "px"; card.style.top = y + "px"; }
+
+  function placeCard(r, pref) {
+    var cw = card.offsetWidth, ch = card.offsetHeight,
+        gap = 14, M = 12, vw = innerWidth, vh = innerHeight;
+    function fits(x, y) { return x >= M && y >= M && x + cw <= vw - M && y + ch <= vh - M; }
+    var order = pref ? [pref, "right", "left", "bottom", "top"] : ["right", "left", "bottom", "top"];
+    var done = {};
+    for (var k = 0; k < order.length; k++) {
+      var p = order[k]; if (done[p]) continue; done[p] = 1;
+      var x, y;
+      if (p === "right") { x = r.right + gap; y = r.top; }
+      else if (p === "left") { x = r.left - gap - cw; y = r.top; }
+      else if (p === "bottom") { x = r.left; y = r.bottom + gap; }
+      else { x = r.left; y = r.top - gap - ch; }
+      if (fits(x, y)) { moveCard(x, y); return; }
+    }
+    /* 都放不下（内嵌小卡片里常见）：贴底居中，允许压住目标 */
+    moveCard(Math.max(M, Math.min(vw - cw - M, r.left)), Math.max(M, vh - ch - M));
+  }
+
+  function paint() {
+    var st = steps[i]; if (!st) return;
+    elT.innerHTML = st.t || "";
+    elB.innerHTML = st.b || "";
+    elStep.textContent = ("0" + (i + 1)).slice(-2) + " / " + ("0" + steps.length).slice(-2);
+    elFill.style.width = ((i + 1) / steps.length * 100) + "%";
+    elPrev.disabled = i === 0;
+    elNext.textContent = i === steps.length - 1 ? "开始动手 ✓" : "下一步 →";
+
+    var t = st.sel ? document.querySelector(st.sel) : null;
+    if (!vis(t)) t = null;
+
+    if (!t) {
+      /* 没有目标（开场白）：在正中留一个极小的孔，整屏压暗 */
+      moveSpot(innerWidth / 2 - 1, innerHeight / 2 - 1, 2, 2);
+      moveCard(Math.max(12, (innerWidth - card.offsetWidth) / 2),
+               Math.max(12, (innerHeight - card.offsetHeight) / 2));
+      return;
+    }
+    var r = t.getBoundingClientRect(), pad = 6;
+    moveSpot(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2);
+    placeCard(r, st.pos);
+  }
+
+  /* 目标可能在未激活的章节里（v1 是章节切换式，其余章节 display:none）：
+     借 vendor-shell 的章节栏把它翻出来，否则聚光灯只能退化成居中 */
+  function revealTarget(sel) {
+    var t = document.querySelector(sel);
+    if (!t || vis(t)) return t;
+    var sec = t.closest ? t.closest("section") : null;
+    if (sec && sec.parentElement) {
+      var sibs = [].slice.call(sec.parentElement.children).filter(function (e) {
+        return e.tagName === "SECTION";
+      });
+      var idx = sibs.indexOf(sec);
+      var bar = document.getElementById("vshBar");
+      if (idx >= 0 && bar) {
+        var btns = bar.querySelectorAll("button");
+        if (btns[idx]) {
+          btns[idx].click();
+          return document.querySelector(sel);
+        }
+      }
+    }
+    return t;
+  }
+
+  /* 目标可能被祖先的 overflow 裁掉（v1 的章节是个 overflow-y:auto 的固定视口，
+     控件常在折叠线以下）。注意不能只跟视口比：元素矩形可能落在视口内、却在容器外 */
+  function scrollerOf(el) {
+    var cur = el.parentElement;
+    while (cur && cur !== document.body) {
+      var cs = getComputedStyle(cur);
+      if (/(auto|scroll)/.test(cs.overflowY) && cur.scrollHeight > cur.clientHeight + 2) return cur;
+      cur = cur.parentElement;
+    }
+    return null;
+  }
+  function ensureVisible(el) {
+    var sc = scrollerOf(el);
+    if (!sc) return false;
+    var r = el.getBoundingClientRect(), cr = sc.getBoundingClientRect(), m = 28;
+    if (r.top >= cr.top + m && r.bottom <= cr.bottom - m) return false;
+    /* 直接改 scrollTop（非平滑）：位置立刻确定，避免聚光灯追着动画跑偏 */
+    sc.scrollTop += (r.top + r.height / 2) - (cr.top + cr.height / 2);
+    return true;
+  }
+
+  /* 目标可能在可滚动容器里：先滚到可见，再定位 */
+  function goto(k) {
+    i = k;
+    var st = steps[i]; if (!st) return;
+    var t = st.sel ? document.querySelector(st.sel) : null;
+    if (t && !vis(t)) t = revealTarget(st.sel);
+    if (vis(t)) ensureVisible(t);
+    paint();
+  }
+
+  function show(k) {
+    open = true;
+    fab.classList.add("hide");
+    root.style.display = "block";
+    /* 先量一次高度，再开 opacity，避免首帧卡片位置跳动 */
+    paint();
+    requestAnimationFrame(function () { root.classList.add("on"); });
+    goto(k);
+  }
+  function hide() {
+    open = false;
+    root.classList.remove("on");
+    setTimeout(function () { if (!open) root.style.display = "none"; }, 260);
+    fab.classList.remove("hide");
+  }
+  function finish() {
+    try { localStorage.setItem(KEY, "1"); } catch (e) {}
+    hide();
+  }
+
+  elNext.addEventListener("click", function () {
+    if (i >= steps.length - 1) { finish(); return; }
+    goto(i + 1);
+  });
+  elPrev.addEventListener("click", function () { if (i > 0) goto(i - 1); });
+  elSkip.addEventListener("click", finish);
+  fab.addEventListener("click", function () { if (!open) show(0); });
+
+  /* 引导开着时接管方向键与 Esc；开着期间不让底层实验室的快捷键抢走 */
+  addEventListener("keydown", function (e) {
+    if (!open) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); if (i < steps.length - 1) goto(i + 1); else finish(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); if (i > 0) goto(i - 1); }
+  }, true);
+
+  /* 视口变化 / 容器滚动时重定位 */
+  function reflow() {
+    if (!open) return;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(paint);
+  }
+  addEventListener("resize", reflow);
+  addEventListener("scroll", reflow, true);
+
+  root.style.display = "none";
+  if (!seen) setTimeout(function () { show(0); }, 620);
+})();
+</script>

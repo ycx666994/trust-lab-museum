@@ -1,0 +1,38 @@
+import { spawn } from "node:child_process";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+const PORT = 9755, W = 1440, H = 900;
+const BASE = "file:///D:/wobdy%E6%B5%B7%E5%A4%96/2026-10-18-18-15-27/trust-lab";
+const EDGE = ["C://Program Files (x86)//Microsoft//Edge//Application//msedge.exe","C://Program Files//Microsoft//Edge//Application//msedge.exe"].find(p=>{try{readFileSync(p);return true}catch{return false}});
+const prof = mkdtempSync(join(tmpdir(),"em2-"));
+const child = spawn(EDGE,[`--remote-debugging-port=${PORT}`,`--user-data-dir=${prof}`,"--headless=new","--no-first-run","--enable-unsafe-swiftshader",`--window-size=${W},${H}`,"about:blank"],{stdio:"ignore"});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function gt(){for(let i=0;i<50;i++){try{const r=await fetch(`http://127.0.0.1:${PORT}/json/list`);const pg=(await r.json()).find(t=>t.type==="page");if(pg)return pg.webSocketDebuggerUrl;}catch{}await sleep(300);}throw new Error("no target");}
+const ws=new WebSocket(await gt());
+let id=0;const pend=new Map();
+ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pend.has(m.id)){pend.get(m.id)(m);pend.delete(m.id);}};
+const send=(meth,par={})=>new Promise(r=>{const i=++id;pend.set(i,r);ws.send(JSON.stringify({id:i,method:meth,params:par}));});
+const ev=async expr=>{const r=await send("Runtime.evaluate",{expression:expr,returnByValue:true,awaitPromise:true});if(r.result?.exceptionDetails)return "ERR:"+(r.result.exceptionDetails.exception?.description||"").slice(0,160);return r.result?.result?.value;};
+await new Promise(r=>{ws.onopen=r;});
+await send("Runtime.enable");await send("Page.enable");
+await send("Emulation.setDeviceMetricsOverride",{width:W,height:H,deviceScaleFactor:1,mobile:false});
+await send("Page.navigate",{url:BASE+"/m2-horizon.html"});
+await sleep(2400);
+await ev(`document.querySelector('.tab[data-layer="hard"]').click()`);
+await sleep(9000);
+console.log("parent ls:", await ev(`(function(){try{return 'm1='+localStorage.getItem('tl.dir.m1')+' m2='+localStorage.getItem('tl.dir.m2')+' seen='+localStorage.getItem('horizon.seen');}catch(e){return 'ERR';}})()`));
+const ft = await send("Page.getFrameTree");
+const cf=[]; (function walk(n){ (n.childFrames||[]).forEach(c=>{cf.push(c.frame); walk(c);}); })(ft.result.frameTree);
+console.log("frames:", cf.map(f=>(f.url.split("/").pop()||'blank')).join(' , '));
+const t = cf.find(f=>/horizon/.test(f.url)) || cf[0];
+if(!t){ console.log("NO FRAME"); child.kill(); ws.close(); process.exit(0); }
+const cw = await send("Page.createIsolatedWorld",{frameId:t.id,worldName:"p",grantUniveralAccess:true});
+const ctx = cw.result.executionContextId;
+const evC=async expr=>{const r=await send("Runtime.evaluate",{expression:expr,returnByValue:true,awaitPromise:true,contextId:ctx});if(r.result?.exceptionDetails)return "ERR:"+(r.result.exceptionDetails.exception?.description||"").slice(0,200);return r.result?.result?.value;};
+console.log("cfg:", await evC(`typeof window.__TLD_CFG`));
+console.log("tld:", await evC(`(function(){var r=document.getElementById('tld');if(!r)return 'NO TLD';return 'on='+r.classList.contains('on')+' disp='+getComputedStyle(r).display+' t='+r.querySelector('.tld-t').textContent;})()`));
+console.log("fab:", await evC(`!!document.getElementById('tldFab')`));
+console.log("ls:", await evC(`(function(){try{return 'm2='+localStorage.getItem('tl.dir.m2');}catch(e){return 'ERR';}})()`));
+console.log("vw/vh:", await evC(`innerWidth+'x'+innerHeight`));
+child.kill();ws.close();process.exit(0);

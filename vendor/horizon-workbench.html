@@ -1,0 +1,4405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>认证地平线 · 受保护切口认证工作台</title>
+<meta name="description" content="学习所得计算的可认证边界：受保护切口、证据代价 ρ^{-2ℓ}、写入预算前沿、检测时钟与能力时钟的分离。论文交互工作台。">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2305060b'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%235ee7ff' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ffc76b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- 非阻塞加载：字体不可达时不会拖住首屏，直接落到本地衬线/等宽回退 -->
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap">
+<style>
+/* ============================================================
+   认证地平线 · 工作台 tokens
+   ============================================================ */
+:root{
+  color-scheme:dark;
+  --void:#05060b;
+  --rail:#070910;
+  --insp:#080a12;
+  --panel:#0b0e18;
+  --panel-2:#0e1220;
+  --line:rgba(150,168,205,.13);
+  --line-2:rgba(150,168,205,.24);
+  --line-3:rgba(150,168,205,.42);
+
+  --ink:#e9edf7;
+  --ink-2:#c2cadc;
+  --dim:#8b95ad;
+  --dim-2:#69738c;
+  --faint:#434c62;
+
+  --cyan:#5ee7ff;
+  --violet:#a78bfa;
+  --amber:#ffc76b;
+  --rose:#ff6b8b;
+  --emerald:#4ade80;
+  --gold:#f5d67b;
+
+  --f-display:'Instrument Serif','Source Han Serif SC','Noto Serif SC','Songti SC','SimSun',Georgia,serif;
+  --f-ui:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --f-mono:'JetBrains Mono','SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+
+  --r-s:6px; --r-m:10px; --r-l:14px;
+  --ease:cubic-bezier(.22,.9,.24,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+
+  --rail-w:208px;
+  --insp-w:306px;
+  --bar-h:52px;
+  --dock-h:56px;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{
+  background:var(--void);color:var(--ink);
+  font-family:var(--f-ui);font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+::selection{background:rgba(94,231,255,.26);color:#fff}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;color:inherit;border:none;background:none;padding:0;cursor:pointer}
+svg{display:block;overflow:visible}
+img{max-width:100%}
+
+/* 滚动条 */
+*::-webkit-scrollbar{width:6px;height:6px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(150,168,205,.18);border-radius:3px}
+*::-webkit-scrollbar-thumb:hover{background:rgba(150,168,205,.32)}
+
+/* ---------- ambient ---------- */
+#field{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.4}
+.atmos{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(900px 520px at 82% -10%,rgba(94,231,255,.10),transparent 62%),
+    radial-gradient(760px 480px at 4% 30%,rgba(167,139,250,.085),transparent 60%),
+    radial-gradient(800px 600px at 50% 118%,rgba(255,199,107,.055),transparent 62%);
+}
+.grain{
+  position:fixed;inset:-100px;z-index:1;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainShift 8s steps(6) infinite;
+}
+@keyframes grainShift{
+  0%{transform:translate(0,0)}16%{transform:translate(-14px,9px)}
+  33%{transform:translate(11px,-12px)}50%{transform:translate(-9px,-8px)}
+  66%{transform:translate(13px,10px)}83%{transform:translate(-12px,4px)}
+  100%{transform:translate(0,0)}
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+.shell{
+  position:relative;z-index:3;height:100dvh;display:grid;
+  grid-template-columns:var(--rail-w) minmax(0,1fr) var(--insp-w);
+  grid-template-rows:var(--bar-h) minmax(0,1fr) var(--dock-h);
+  grid-template-areas:
+    "bar bar bar"
+    "rail canvas insp"
+    "dock dock dock";
+}
+
+/* ---------- top bar ---------- */
+.bar{
+  grid-area:bar;display:flex;align-items:center;gap:14px;padding:0 16px;
+  border-bottom:1px solid var(--line);
+  background:rgba(7,9,16,.82);backdrop-filter:blur(18px) saturate(1.35);
+  position:relative;z-index:20;
+}
+.brand{display:flex;align-items:center;gap:10px;flex:none;margin-right:4px}
+.brand-mark{width:21px;height:21px;flex:none}
+.brand-txt{font-family:var(--f-display);font-size:18px;letter-spacing:.01em;line-height:1}
+.brand-txt b{font-weight:400;color:var(--cyan)}
+.brand-sub{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint);padding-left:12px;margin-left:2px;border-left:1px solid var(--line);
+  line-height:1.3;max-width:170px;
+}
+.bar-crumb{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;color:var(--dim-2);
+  display:flex;align-items:center;gap:8px;margin-left:6px;
+}
+.bar-crumb b{color:var(--ink-2);font-weight:500;letter-spacing:.02em}
+.bar-crumb .sl{color:var(--faint)}
+.bar-sp{margin-left:auto}
+.bar-actions{display:flex;align-items:center;gap:6px;flex:none}
+
+.tbtn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;
+  padding:6px 11px;border-radius:7px;border:1px solid var(--line-2);
+  color:var(--dim);background:rgba(150,168,205,.04);
+  transition:all .22s var(--ease);white-space:nowrap;
+}
+.tbtn:hover{border-color:var(--line-3);color:var(--ink);background:rgba(150,168,205,.1)}
+.tbtn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(94,231,255,.09)}
+.tbtn .kk{
+  font-size:8.5px;padding:1px 4px;border-radius:3px;
+  background:rgba(150,168,205,.12);color:var(--dim-2);letter-spacing:0;
+}
+.tbtn.primary{border-color:var(--cyan);background:var(--cyan);color:#04121a;font-weight:600}
+.tbtn.primary:hover{background:#8df0ff;color:#04121a}
+.tbtn svg{width:12px;height:12px;flex:none}
+
+/* ---------- left rail ---------- */
+.rail{
+  grid-area:rail;border-right:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(9,11,19,.94),rgba(6,8,14,.98));
+  overflow-y:auto;overflow-x:hidden;padding:10px 0 16px;position:relative;
+}
+.rail-head{
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint);padding:8px 16px 10px;
+}
+.rail-item{
+  display:grid;grid-template-columns:26px minmax(0,1fr);gap:9px;align-items:center;
+  padding:8px 14px 8px 16px;position:relative;cursor:pointer;
+  transition:background .22s var(--ease),color .22s;
+  border-left:2px solid transparent;
+}
+.rail-item:hover{background:rgba(150,168,205,.05)}
+.rail-item.on{background:rgba(94,231,255,.07);border-left-color:var(--cyan)}
+.rail-n{
+  font-family:var(--f-mono);font-size:10px;color:var(--faint);
+  transition:color .22s;letter-spacing:.04em;
+}
+.rail-item.on .rail-n{color:var(--cyan)}
+.rail-body{min-width:0}
+.rail-name{
+  font-size:12.5px;color:var(--dim);font-weight:450;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .22s;
+}
+.rail-item:hover .rail-name{color:var(--ink-2)}
+.rail-item.on .rail-name{color:var(--ink);font-weight:500}
+.rail-thm{
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.09em;
+  color:var(--faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rail-item.on .rail-thm{color:rgba(94,231,255,.6)}
+.rail-item.flash{animation:railFlash .6s var(--ease)}
+@keyframes railFlash{0%{background:rgba(94,231,255,.22)}100%{background:rgba(94,231,255,.07)}}
+
+.rail-foot{
+  margin-top:auto;padding:14px 16px 4px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:7px;
+}
+.rail-kv{display:flex;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:9.5px;color:var(--faint)}
+.rail-kv b{color:var(--dim-2);font-weight:500}
+
+/* ---------- canvas ---------- */
+.canvas{
+  grid-area:canvas;position:relative;overflow:hidden;
+  background:radial-gradient(120% 100% at 50% 0%,rgba(12,16,28,.55),rgba(5,6,11,0) 60%);
+  display:flex;flex-direction:column;min-width:0;
+}
+.canvas::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(150,168,205,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(150,168,205,.05) 1px,transparent 1px);
+  background-size:46px 46px;background-position:center;
+  -webkit-mask-image:radial-gradient(ellipse 70% 65% at 50% 42%,#000 20%,transparent 82%);
+  mask-image:radial-gradient(ellipse 70% 65% at 50% 42%,#000 20%,transparent 82%);
+}
+.canvas-head{
+  position:relative;z-index:2;display:flex;align-items:flex-end;gap:18px;
+  padding:16px 22px 0;flex:none;
+}
+.canvas-title{min-width:0;flex:0 0 auto}
+.canvas-kicker{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint);display:flex;align-items:center;gap:9px;margin-bottom:5px;white-space:nowrap;
+}
+.canvas-kicker::before{content:'';width:20px;height:1px;background:var(--line-3);display:block}
+.canvas-h1{
+  font-family:var(--f-display);font-size:clamp(22px,2.3vw,32px);line-height:1.06;
+  letter-spacing:-.015em;margin:0;white-space:nowrap;
+}
+.canvas-h1 .sub{color:var(--dim-2);font-size:.62em;margin-left:8px;letter-spacing:0}
+.canvas-meta{
+  margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+  min-width:0;flex:1 1 auto;
+}
+.canvas-body{
+  position:relative;z-index:2;flex:1;min-height:0;
+  padding:16px 22px 18px;display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+}
+.canvas-body.swap-out{opacity:0;transform:translateY(-6px) scale(.995);filter:blur(3px)}
+.canvas-body{transition:opacity .18s var(--ease),transform .18s var(--ease),filter .18s}
+
+/* ---------- inspector ---------- */
+.insp{
+  grid-area:insp;border-left:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(9,11,19,.94),rgba(6,8,14,.98));
+  overflow-y:auto;display:flex;flex-direction:column;
+}
+.insp-sec{padding:13px 16px 15px;border-bottom:1px solid var(--line)}
+.insp-sec:last-child{border-bottom:none}
+.insp-h{
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.19em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:11px;display:flex;align-items:center;gap:8px;
+}
+.insp-h::after{content:'';flex:1;height:1px;background:var(--line)}
+.insp-h .r{margin-left:auto;color:var(--faint);letter-spacing:.04em;text-transform:none;font-size:9px}
+
+/* ---------- dock ---------- */
+.dock{
+  grid-area:dock;border-top:1px solid var(--line);
+  background:rgba(7,9,16,.9);backdrop-filter:blur(16px);
+  display:flex;align-items:center;padding:0 16px;gap:0;
+  overflow-x:auto;overflow-y:hidden;position:relative;z-index:20;
+}
+.dock::-webkit-scrollbar{height:0}
+.dock-cell{
+  display:flex;flex-direction:column;justify-content:center;gap:1px;
+  padding:0 16px;height:100%;border-right:1px solid var(--line);min-width:0;flex:none;
+}
+.dock-cell:first-child{padding-left:2px}
+.dock-cell:last-child{border-right:none}
+.dock-k{
+  font-family:var(--f-mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);white-space:nowrap;
+}
+.dock-v{
+  font-family:var(--f-mono);font-size:13.5px;font-weight:500;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap;
+  transition:color .3s var(--ease);
+}
+.dock-v.cy{color:var(--cyan)}.dock-v.vi{color:var(--violet)}
+.dock-v.am{color:var(--amber)}.dock-v.ro{color:var(--rose)}.dock-v.em{color:var(--emerald)}
+.dock-sp{margin-left:auto}
+.dock-status{
+  display:flex;align-items:center;gap:10px;padding-left:14px;
+}
+.dock-dots{display:flex;gap:5px}
+.dock-dot{
+  width:7px;height:7px;border-radius:2px;background:var(--faint);
+  transition:background .35s var(--ease),box-shadow .35s;
+}
+.dock-dot.ok{background:var(--emerald);box-shadow:0 0 9px rgba(74,222,128,.6)}
+.dock-dot.thin{background:var(--amber);box-shadow:0 0 9px rgba(255,199,107,.55)}
+.dock-dot.no{background:var(--rose);box-shadow:0 0 9px rgba(255,107,139,.55)}
+.dock-stxt{font-family:var(--f-mono);font-size:10px;letter-spacing:.05em;color:var(--dim-2);white-space:nowrap}
+<style>
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+.card{
+  border:1px solid var(--line);border-radius:var(--r-l);
+  background:linear-gradient(168deg,rgba(14,18,32,.86),rgba(7,9,16,.94));
+  position:relative;overflow:hidden;min-height:0;
+}
+.card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(360px 200px at var(--mx,50%) var(--my,0%),rgba(94,231,255,.085),transparent 70%);
+  opacity:0;transition:opacity .45s var(--ease);
+}
+.card:hover::before{opacity:1}
+.card-h{
+  display:flex;align-items:center;gap:9px;padding:9px 14px;
+  border-bottom:1px solid var(--line);
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim-2);flex:none;
+}
+.card-h .d{width:4px;height:4px;border-radius:50%;background:var(--cyan);flex:none;box-shadow:0 0 8px var(--cyan)}
+.card-h .r{margin-left:auto;color:var(--faint);letter-spacing:.03em;text-transform:none;font-size:9px;white-space:nowrap}
+.card-b{padding:14px;min-height:0}
+.card.col>.card-b{flex:1;min-height:0}
+.card-f{
+  padding:8px 14px;border-top:1px solid var(--line);
+  font-family:var(--f-mono);font-size:9.5px;color:var(--faint);letter-spacing:.02em;
+  display:flex;gap:14px;flex-wrap:wrap;flex:none;line-height:1.5;
+}
+.card-f b{color:var(--dim);font-weight:500}
+.card.col{display:flex;flex-direction:column}
+
+.chart{width:100%;height:100%;display:block}
+.chartwrap{position:relative;flex:1;min-height:0;width:100%}
+
+/* ---------- sliders (compact) ---------- */
+.sl{margin-bottom:12px}
+.sl:last-child{margin-bottom:0}
+.sl-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
+.sl-lab{font-size:11px;color:var(--dim);font-weight:450;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl-val{font-family:var(--f-mono);font-size:11.5px;color:var(--cyan);font-weight:500;font-variant-numeric:tabular-nums}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:14px;background:transparent;
+  cursor:pointer;margin:0;display:block;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:2px;border-radius:2px;
+  background:linear-gradient(to right,var(--cyan) var(--p,50%),rgba(150,168,205,.17) var(--p,50%));
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:var(--void);border:1.5px solid var(--cyan);margin-top:-4.5px;
+  box-shadow:0 0 0 0 rgba(94,231,255,.3);transition:box-shadow .25s;
+}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 5px rgba(94,231,255,.13)}
+input[type=range]::-moz-range-track{height:2px;background:rgba(150,168,205,.17)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--cyan)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--void);border:1.5px solid var(--cyan)}
+
+/* ---------- segmented ---------- */
+.seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:7px;background:rgba(5,6,11,.6);width:100%}
+.seg button{
+  flex:1;font-family:var(--f-mono);font-size:10px;padding:4px 6px;border-radius:5px;
+  color:var(--dim-2);transition:all .2s var(--ease);white-space:nowrap;
+}
+.seg button:hover{background:rgba(150,168,205,.09);color:var(--ink-2)}
+.seg button.on{background:var(--cyan);color:#04121a;font-weight:700}
+
+/* ---------- readout rows ---------- */
+.read{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed rgba(150,168,205,.09)}
+.read:last-child{border-bottom:none}
+.read-k{font-size:10.5px;color:var(--dim-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.read-v{font-family:var(--f-mono);font-size:11.5px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.read-v.cy{color:var(--cyan)}.read-v.vi{color:var(--violet)}
+.read-v.am{color:var(--amber)}.read-v.ro{color:var(--rose)}.read-v.em{color:var(--emerald)}
+
+/* ---------- tags ---------- */
+.tag{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;white-space:nowrap;
+  border:1px solid var(--line-2);color:var(--dim-2);
+}
+.tag.gold{color:var(--gold);border-color:rgba(245,214,123,.32);background:rgba(245,214,123,.07)}
+.tag.cy{color:var(--cyan);border-color:rgba(94,231,255,.3);background:rgba(94,231,255,.06)}
+.tag.ro{color:var(--rose);border-color:rgba(255,107,139,.3);background:rgba(255,107,139,.06)}
+.tag.em{color:var(--emerald);border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.06)}
+
+/* ---------- formula ---------- */
+.eq{
+  font-family:var(--f-mono);font-size:12.5px;line-height:1.9;
+  color:var(--ink);background:rgba(94,231,255,.035);
+  border-left:2px solid var(--cyan);border-radius:0 var(--r-s) var(--r-s) 0;
+  padding:10px 13px;margin:0;overflow-x:auto;letter-spacing:.01em;
+}
+.eq .v{color:var(--cyan)}.eq .vv{color:var(--violet)}
+.eq .a{color:var(--amber)}.eq .r{color:var(--rose)}
+.eq .c{color:var(--dim-2);font-size:11px}
+
+/* ---------- prose ---------- */
+.prose{font-size:12.5px;line-height:1.72;color:var(--ink-2);font-weight:300}
+.prose p{margin:0 0 .8em}
+.prose p:last-child{margin:0}
+.prose b,.prose strong{font-weight:600;color:var(--ink)}
+.prose .hl{color:var(--cyan)}
+.prose .hlr{color:var(--rose)}
+.prose .hla{color:var(--amber)}
+.prose .hlv{color:var(--violet)}
+
+/* ---------- layout helpers ---------- */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.split{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;flex:1;min-height:0}
+.split2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;flex:1;min-height:0}
+.stack{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0}
+.row{display:flex;gap:10px;align-items:center}
+
+/* ============================================================
+   MODULE: overview
+   ============================================================ */
+.ov{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) 280px;gap:14px 22px;flex:1;min-height:0;align-items:stretch}
+.ov-l{min-width:0;display:flex;flex-direction:column;justify-content:center}
+.ov-k{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint);display:flex;align-items:center;gap:9px;margin-bottom:12px;
+}
+.ov-k::before{content:'';width:22px;height:1px;background:var(--line-3)}
+.ov-h{
+  font-family:var(--f-display);font-size:clamp(28px,3.4vw,46px);line-height:1.05;
+  letter-spacing:-.02em;margin:0 0 16px;text-wrap:balance;
+}
+.ov-h .hl{color:var(--cyan)}
+.ov-h .hlv{color:var(--violet)}
+.ov-p{font-size:13px;line-height:1.75;color:var(--ink-2);font-weight:300;max-width:44ch;margin:0 0 16px}
+.ov-p b{color:var(--ink);font-weight:600}
+.ov-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ov-chips .tag{font-size:9.5px;padding:3px 8px;letter-spacing:.05em;text-transform:none}
+.ov-r{display:flex;flex-direction:column;gap:10px;min-height:0}
+.ov-map{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ov-node{
+  border:1px solid var(--line);border-radius:9px;padding:9px 10px;cursor:pointer;
+  background:rgba(11,14,24,.7);transition:all .25s var(--ease);position:relative;overflow:hidden;
+}
+.ov-node:hover{border-color:var(--line-3);background:rgba(150,168,205,.08);transform:translateY(-1px)}
+.ov-node .n{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.14em;color:var(--faint)}
+.ov-node .t{font-size:12px;color:var(--ink-2);margin-top:3px;font-weight:450;line-height:1.3}
+.ov-node .e{font-family:var(--f-mono);font-size:8.5px;color:var(--faint);margin-top:2px}
+.ov-node::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--nc,var(--cyan));opacity:.7;
+}
+
+/* ============================================================
+   MODULE: cut / evidence / clocks — chart + inset
+   ============================================================ */
+.inset{display:flex;flex-direction:column;gap:10px;min-height:0}
+.inset .card{flex:none}
+.mx-mini{height:auto}
+
+/* ============================================================
+   MODULE: budget — bits
+   ============================================================ */
+.bits{display:flex;gap:6px;flex-wrap:wrap}
+.bit{
+  width:40px;height:52px;border-radius:8px;border:1px solid var(--line-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-family:var(--f-mono);cursor:pointer;user-select:none;
+  transition:all .28s var(--ease);background:rgba(150,168,205,.05);
+}
+.bit .b{font-size:18px;font-weight:600;color:var(--ink);line-height:1}
+.bit .i{font-size:8px;color:var(--faint);letter-spacing:.04em}
+.bit:hover{border-color:var(--line-3);background:rgba(150,168,205,.11);transform:translateY(-1px)}
+.bit.flip{background:rgba(255,107,139,.15);border-color:rgba(255,107,139,.62);box-shadow:0 0 16px -4px rgba(255,107,139,.55)}
+.bit.flip .b{color:var(--rose)}
+.bit.flip .i{color:rgba(255,107,139,.7)}
+.bits-hint{font-family:var(--f-mono);font-size:10px;color:var(--dim-2);letter-spacing:.02em}
+.bits-hint b{color:var(--rose);font-weight:600}
+.bits-hint.ok b{color:var(--emerald)}
+.bud-bar{height:5px;border-radius:3px;background:rgba(150,168,205,.1);overflow:hidden;display:flex}
+.bud-bar i{display:block;height:100%;transition:width .35s var(--ease)}
+.bud-lab{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9px;color:var(--faint);letter-spacing:.03em}
+
+/* ============================================================
+   MODULE: console — verdicts
+   ============================================================ */
+.vd{
+  border:1px solid var(--line);border-radius:var(--r-l);padding:13px 15px;
+  position:relative;overflow:hidden;background:linear-gradient(168deg,rgba(14,18,32,.8),rgba(7,9,16,.9));
+  transition:border-color .4s var(--ease);flex:1;min-height:0;display:flex;flex-direction:column;
+}
+.vd[data-s=ok]{border-color:rgba(74,222,128,.36)}
+.vd[data-s=no]{border-color:rgba(255,107,139,.36)}
+.vd[data-s=thin]{border-color:rgba(255,199,107,.36)}
+.vd::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(280px 130px at 10% 0%,var(--vc,transparent),transparent 72%);opacity:.55;
+}
+.vd[data-s=ok]{--vc:rgba(74,222,128,.15)}
+.vd[data-s=no]{--vc:rgba(255,107,139,.15)}
+.vd[data-s=thin]{--vc:rgba(255,199,107,.15)}
+.vd-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;position:relative}
+.vd-ic{
+  width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-size:11px;flex:none;
+}
+[data-s=ok] .vd-ic{background:rgba(74,222,128,.15);color:var(--emerald);border:1px solid rgba(74,222,128,.36)}
+[data-s=no] .vd-ic{background:rgba(255,107,139,.15);color:var(--rose);border:1px solid rgba(255,107,139,.36)}
+[data-s=thin] .vd-ic{background:rgba(255,199,107,.15);color:var(--amber);border:1px solid rgba(255,199,107,.36)}
+.vd-t{font-family:var(--f-display);font-size:17px;line-height:1.15;flex:1}
+[data-s=ok] .vd-t{color:var(--emerald)}
+[data-s=no] .vd-t{color:var(--rose)}
+[data-s=thin] .vd-t{color:var(--amber)}
+.vd-s{font-size:11.5px;line-height:1.62;color:var(--dim);font-weight:300;position:relative;margin-bottom:9px;flex:1}
+.vd-kv{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:7px;overflow:hidden;position:relative;flex:none}
+.vd-kv>div{background:rgba(8,10,18,.88);padding:6px 9px}
+.vd-kv .k{font-family:var(--f-mono);font-size:8px;letter-spacing:.1em;color:var(--faint);white-space:nowrap}
+.vd-kv .v{font-family:var(--f-mono);font-size:11.5px;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:1px}
+
+/* ============================================================
+   MODULE: limits
+   ============================================================ */
+.lim{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;flex:1;min-height:0}
+.lim-c{
+  border:1px solid var(--line);border-radius:var(--r-l);padding:20px 22px;
+  background:linear-gradient(168deg,rgba(13,17,29,.72),rgba(7,9,16,.9));
+  position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;
+}
+.lim-c::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--lc,var(--rose));opacity:.6}
+.lim-h{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.lim-h .t{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--lc,var(--rose))}
+.lim-t{font-family:var(--f-display);font-size:21px;line-height:1.28;margin:0 0 10px}
+.lim-b{font-size:13px;line-height:1.78;color:var(--dim);font-weight:300}
+.lim-b b{color:var(--ink-2);font-weight:600}
+.lim-f{
+  display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;padding-top:12px;
+  border-top:1px solid var(--line);
+}
+.lim-f span{display:flex;align-items:baseline;gap:6px}
+.lim-f i{
+  font-style:normal;font-family:var(--f-mono);font-size:8.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint);
+}
+.lim-f b{
+  font-family:var(--f-mono);font-size:11.5px;font-weight:500;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;
+}
+.lim-f b.cy{color:var(--cyan)}.lim-f b.ro{color:var(--rose)}
+.lim-f b.am{color:var(--amber)}.lim-f b.em{color:var(--emerald)}
+
+/* ---------- quote ---------- */
+.quote{
+  border:1px solid rgba(255,107,139,.22);border-radius:var(--r-l);
+  background:linear-gradient(168deg,rgba(255,107,139,.05),rgba(7,9,16,.9));
+  padding:20px 22px;position:relative;overflow:hidden;
+}
+.quote-q{
+  font-family:var(--f-display);font-size:16.5px;line-height:1.55;color:var(--ink);
+  position:relative;margin:0 0 9px;letter-spacing:-.004em;
+}
+.quote-a{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--rose);opacity:.75}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.tbl th{
+  text-align:left;font-family:var(--f-mono);font-size:8.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--faint);font-weight:500;
+  padding:0 9px 7px;border-bottom:1px solid var(--line-2);white-space:nowrap;
+}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tbl tbody tr{transition:background .18s}
+.tbl tbody tr:hover{background:rgba(150,168,205,.05)}
+/* 撑满卡片：行高按可用高度均分，且不压缩到内容以下 */
+.tbl-fill{flex:1 1 auto;min-height:min-content}
+.tbl-fill td{padding:9px}
+.bar-mini{display:flex;align-items:center;gap:8px}
+.bar-mini .track{flex:1;height:5px;border-radius:3px;background:rgba(150,168,205,.1);overflow:hidden;min-width:36px}
+.bar-mini .fill{height:100%;border-radius:3px;background:var(--cyan);opacity:.85;transition:width .9s var(--ease-out)}
+
+/* ---------- compare table ---------- */
+.cmp-row{display:grid;grid-template-columns:78px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11.5px;line-height:1.55}
+.cmp-row:last-child{border-bottom:none}
+.cmp-row .k{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding-top:2px}
+.cmp-row .v{color:var(--ink-2);font-weight:300}
+.cmp-row .v b{color:var(--ink);font-weight:600}
+.cmp-row .v.bad{color:rgba(255,107,139,.85)}
+
+/* ---------- 三步自查 ---------- */
+.step{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}
+.step .sn{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.06em;color:var(--cyan);
+  border:1px solid rgba(94,231,255,.28);border-radius:5px;background:rgba(94,231,255,.07);
+  height:19px;display:grid;place-items:center;margin-top:1px;
+}
+.step .st{font-size:12px;color:var(--ink);font-weight:500;line-height:1.4;margin-bottom:2px}
+.step .sb{font-size:11px;line-height:1.6;color:var(--dim);font-weight:300}
+.step .sb b{color:var(--ink-2);font-weight:600}
+
+/* ============================================================
+   OVERLAYS
+   ============================================================ */
+.ovl{position:fixed;inset:0;z-index:200;display:none}
+.ovl.on{display:block}
+.ovl-mask{position:absolute;inset:0;background:rgba(3,4,8,.74);backdrop-filter:blur(7px)}
+
+/* palette */
+.pal{
+  position:absolute;left:50%;top:13vh;transform:translateX(-50%);
+  width:min(600px,92vw);border:1px solid var(--line-2);border-radius:14px;
+  background:linear-gradient(170deg,rgba(13,17,29,.98),rgba(6,8,14,.99));
+  box-shadow:0 40px 100px -30px #000;overflow:hidden;
+  animation:palIn .22s var(--ease-out);
+}
+@keyframes palIn{from{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.985)}to{opacity:1;transform:translateX(-50%)}}
+.pal-in{
+  display:flex;align-items:center;gap:10px;padding:12px 15px;border-bottom:1px solid var(--line);
+}
+.pal-in input{
+  flex:1;background:none;border:none;outline:none;color:var(--ink);
+  font-family:var(--f-ui);font-size:14px;
+}
+.pal-in input::placeholder{color:var(--faint)}
+.pal-in .esc{font-family:var(--f-mono);font-size:8.5px;color:var(--faint);border:1px solid var(--line-2);padding:2px 5px;border-radius:4px}
+.pal-list{max-height:52vh;overflow-y:auto;padding:5px}
+.pal-item{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;cursor:pointer;
+  transition:background .15s;
+}
+.pal-item:hover,.pal-item.sel{background:rgba(94,231,255,.1)}
+.pal-item .n{
+  font-family:var(--f-mono);font-size:9px;color:var(--faint);width:22px;flex:none;letter-spacing:.06em;
+}
+.pal-item.sel .n{color:var(--cyan)}
+.pal-item .t{font-size:12.5px;color:var(--ink-2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pal-item .h{font-family:var(--f-mono);font-size:9px;color:var(--faint);flex:none}
+.pal-sec{
+  font-family:var(--f-mono);font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--faint);padding:9px 11px 4px;
+}
+.pal-empty{padding:22px;text-align:center;font-family:var(--f-mono);font-size:11px;color:var(--faint)}
+
+/* tour */
+.tour-spot{
+  position:absolute;border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(3,4,8,.82),0 0 0 1.5px rgba(94,231,255,.6);
+  transition:all .45s var(--ease-out);
+}
+.tour-tip{
+  position:absolute;width:300px;border:1px solid var(--line-2);border-radius:11px;
+  background:linear-gradient(170deg,rgba(13,17,29,.99),rgba(6,8,14,.99));
+  padding:14px 16px;box-shadow:0 26px 70px -24px #000;
+  transition:all .45s var(--ease-out);
+}
+.tour-step{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.16em;color:var(--cyan);margin-bottom:6px}
+.tour-t{font-family:var(--f-display);font-size:17px;margin-bottom:6px;line-height:1.2}
+.tour-b{font-size:11.5px;line-height:1.66;color:var(--dim);font-weight:300;margin-bottom:12px}
+.tour-f{display:flex;align-items:center;gap:8px}
+.tour-f .sp{flex:1}
+.tour-btn{font-family:var(--f-mono);font-size:10px;padding:5px 11px;border-radius:6px;border:1px solid var(--line-2);color:var(--dim);transition:all .2s}
+.tour-btn:hover{border-color:var(--line-3);color:var(--ink)}
+.tour-btn.pri{background:var(--cyan);color:#04121a;border-color:var(--cyan);font-weight:600}
+
+/* toast */
+.toast-wrap{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none}
+.toast{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.03em;
+  padding:8px 15px;border-radius:100px;border:1px solid var(--line-2);
+  background:rgba(9,12,20,.96);color:var(--ink-2);box-shadow:0 16px 40px -16px #000;
+  animation:toastIn .28s var(--ease-out);display:flex;align-items:center;gap:8px;
+}
+.toast .d{width:5px;height:5px;border-radius:50%;background:var(--cyan);flex:none}
+.toast.ok .d{background:var(--emerald)}
+.toast.warn .d{background:var(--amber)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.toast.out{animation:toastOut .3s var(--ease) forwards}
+@keyframes toastOut{to{opacity:0;transform:translateY(-6px)}}
+
+/* popover */
+.pop{
+  position:fixed;top:calc(var(--bar-h) + 6px);right:16px;z-index:190;
+  width:276px;border:1px solid var(--line-2);border-radius:11px;
+  background:linear-gradient(170deg,rgba(13,17,29,.99),rgba(6,8,14,.995));
+  box-shadow:0 34px 80px -28px #000;padding:6px;display:none;
+  animation:popIn .18s var(--ease-out);
+}
+@keyframes popIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.pop.on{display:block}
+.pop-h{
+  font-family:var(--f-mono);font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--faint);padding:7px 9px 6px;
+}
+.pop button{
+  display:block;width:100%;text-align:left;padding:7px 9px;border-radius:6px;
+  font-size:11.5px;color:var(--ink-2);transition:background .14s,color .14s;
+}
+.pop button:hover{background:rgba(94,231,255,.1);color:var(--ink)}
+.pop button .s{display:block;font-family:var(--f-mono);font-size:8.5px;color:var(--faint);margin-top:2px;letter-spacing:.02em}
+.pop button.on{background:rgba(94,231,255,.13);color:var(--cyan)}
+.pop-sep{height:1px;background:var(--line);margin:5px 7px}
+
+/* shortcuts sheet */.sheet{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(520px,92vw);border:1px solid var(--line-2);border-radius:14px;
+  background:linear-gradient(170deg,rgba(13,17,29,.99),rgba(6,8,14,.99));
+  padding:20px 22px;box-shadow:0 40px 100px -30px #000;
+}
+.sheet h3{font-family:var(--f-display);font-size:20px;margin:0 0 14px}
+.sheet-g{display:grid;grid-template-columns:1fr 1fr;gap:9px 22px}
+.sheet-r{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--dim)}
+.sheet-r .kb{font-family:var(--f-mono);font-size:9.5px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:4px;padding:1px 6px;background:rgba(150,168,205,.07)}
+
+/* drawer (mobile inspector) —— 仅在窄屏接管 #insp 的职责 */
+.drawer{
+  display:none;position:fixed;top:0;right:0;bottom:0;width:min(336px,88vw);z-index:180;
+  background:linear-gradient(180deg,rgba(9,11,19,.99),rgba(6,8,14,1));
+  border-left:1px solid var(--line-2);transform:translateX(100%);
+  transition:transform .32s var(--ease);
+  flex-direction:column;box-shadow:-30px 0 80px -40px #000;
+}
+.drawer.on{transform:none}
+.d-head{
+  flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 14px 12px;border-bottom:1px solid var(--line);
+}
+.d-t{font-family:var(--f-display);font-size:17px;color:var(--ink);line-height:1}
+.d-t span{
+  display:block;font-family:var(--f-mono);font-size:8px;letter-spacing:.2em;
+  color:var(--faint);margin-top:5px;text-transform:uppercase;
+}
+.d-x{
+  width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);
+  background:rgba(150,168,205,.06);color:var(--dim);font-size:15px;line-height:1;
+  display:grid;place-items:center;transition:all .16s;
+}
+.d-x:hover{color:var(--rose);border-color:rgba(255,107,139,.4);background:rgba(255,107,139,.1)}
+.d-body{flex:1;min-height:0;overflow-y:auto;padding:4px 14px 18px}
+.d-body .insp-sec{padding:13px 0;border-bottom:none}
+.d-body .insp-sec+.insp-sec{border-top:1px solid var(--line)}
+
+/* 悬浮参数按钮（窄屏专用） */
+.fab{
+  display:none;position:fixed;right:14px;bottom:calc(var(--dock-h) + 14px);z-index:150;
+  align-items:center;gap:9px;height:46px;padding:0 16px 0 13px;border-radius:23px;
+  border:1px solid rgba(94,231,255,.34);
+  background:linear-gradient(135deg,rgba(20,30,48,.96),rgba(10,14,24,.96));
+  box-shadow:0 14px 34px -14px rgba(0,0,0,.9),0 0 0 1px rgba(94,231,255,.08) inset;
+  color:var(--ink);font-family:var(--f-ui);font-size:12px;font-weight:500;
+  transition:transform .2s var(--ease),border-color .2s,box-shadow .2s;
+}
+.fab:active{transform:scale(.95)}
+.fab svg{width:17px;height:17px;flex:none;stroke:var(--cyan);fill:none;stroke-width:1.7;stroke-linecap:round}
+.fab .n{
+  font-family:var(--f-mono);font-size:9px;color:var(--cyan);
+  background:rgba(94,231,255,.13);border-radius:9px;padding:2px 6px;letter-spacing:.04em;
+}
+.fab::after{
+  content:"";position:absolute;inset:-1px;border-radius:23px;pointer-events:none;
+  box-shadow:0 0 0 0 rgba(94,231,255,.4);animation:fabPulse 2.6s ease-out infinite;
+}
+@keyframes fabPulse{
+  0%{box-shadow:0 0 0 0 rgba(94,231,255,.34)}
+  70%{box-shadow:0 0 0 13px rgba(94,231,255,0)}
+  100%{box-shadow:0 0 0 0 rgba(94,231,255,0)}
+}
+
+/* 抽屉遮罩 */
+.dscrim{
+  display:none;position:fixed;inset:0;z-index:170;background:rgba(3,4,8,.62);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .3s var(--ease);
+}
+.dscrim.on{opacity:1;pointer-events:auto}
+
+/* ============================================================
+   MISC · svg 与小组件
+   ============================================================ */
+.axis text{font-family:var(--f-mono);font-size:9.5px;fill:var(--dim-2)}
+.gridline{stroke:rgba(150,168,205,.1);stroke-width:1}
+.mat-cell{transition:fill .45s var(--ease),stroke .45s}
+.mat-lab{font-family:var(--f-mono);font-size:9.5px;fill:var(--dim-2)}
+.tip{
+  position:absolute;pointer-events:none;opacity:0;z-index:400;
+  background:rgba(5,6,11,.97);border:1px solid var(--line-2);border-radius:8px;
+  padding:8px 11px;font-family:var(--f-mono);font-size:10.5px;line-height:1.65;
+  color:var(--ink-2);white-space:nowrap;transform:translate(-50%,-124%);
+  transition:opacity .16s;box-shadow:0 14px 40px -14px #000;letter-spacing:.02em;
+}
+.tip.on{opacity:1}
+.tip b{color:var(--cyan);font-weight:600}
+.tip .k{color:var(--faint)}
+
+/* 小统计块 */
+.stat{
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;
+  background:linear-gradient(168deg,rgba(13,17,29,.7),rgba(8,10,18,.85));
+  display:flex;flex-direction:column;gap:3px;min-width:0;
+  transition:border-color .4s var(--ease);
+}
+.stat[data-s=ok]{border-color:rgba(74,222,128,.3)}
+.stat[data-s=thin]{border-color:rgba(255,199,107,.3)}
+.stat[data-s=no]{border-color:rgba(255,107,139,.3)}
+.stat .k{
+  font-family:var(--f-mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.stat .k i{width:5px;height:5px;border-radius:1px;background:var(--faint);flex:none;transition:background .35s,box-shadow .35s}
+.stat[data-s=ok] .k i{background:var(--emerald);box-shadow:0 0 8px var(--emerald)}
+.stat[data-s=thin] .k i{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.stat[data-s=no] .k i{background:var(--rose);box-shadow:0 0 8px var(--rose)}
+.stat .v{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .s{font-family:var(--f-mono);font-size:8.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.ov-node{text-align:left;font:inherit}
+.ov-node.on{border-color:rgba(94,231,255,.55);background:rgba(94,231,255,.1)}
+.ov-node.on .t{color:var(--cyan)}
+
+/* 扫描结果条 */
+.hbar{display:grid;grid-template-columns:88px minmax(0,1fr) 62px;gap:11px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.hbar:last-child{border-bottom:none}
+.hbar .hk{font-family:var(--f-mono);font-size:9px;letter-spacing:.08em;color:var(--dim-2);white-space:nowrap}
+.hbar .track{height:6px;border-radius:3px;background:rgba(150,168,205,.1);overflow:hidden}
+.hbar .fill{height:100%;border-radius:3px;transition:width .8s var(--ease-out)}
+.hbar .hv{font-family:var(--f-mono);font-size:11.5px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+
+/* 证书块 */
+.cert{
+  font-family:var(--f-mono);font-size:10.5px;line-height:1.85;color:var(--dim);
+  background:rgba(5,6,11,.62);border:1px solid var(--line);border-radius:9px;
+  padding:11px 13px;white-space:pre-wrap;word-break:break-word;overflow:auto;
+  letter-spacing:.01em;margin:0;
+}
+.cert b{color:var(--cyan);font-weight:500}
+.cert .g{color:var(--emerald)}
+.cert .r{color:var(--rose)}
+.cert .a{color:var(--amber)}
+
+/* 图例 */
+.lg{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--f-mono);font-size:9px;color:var(--dim-2);letter-spacing:.03em}
+.lg span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.lg i{width:9px;height:2px;border-radius:1px;flex:none}
+
+.mini-h{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:7px}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media(max-width:1240px){
+  :root{--rail-w:66px;--insp-w:268px}
+  .rail-head,.rail-body,.rail-thm,.rail-foot{display:none}
+  .rail-item{grid-template-columns:1fr;justify-items:center;padding:11px 6px;gap:3px;border-left-width:2px}
+  .rail-n{font-size:10.5px}
+  .rail-item::after{
+    content:attr(data-short);font-family:var(--f-ui);font-size:9px;
+    color:var(--faint);letter-spacing:0;text-align:center;line-height:1.2;white-space:nowrap;
+  }
+  .rail-item.on::after{color:var(--cyan)}
+}
+@media(max-width:1180px){
+  .brand-sub{display:none}
+}
+@media(max-width:980px){
+  :root{--insp-w:0px}
+  .insp{display:none}
+  .drawer{display:flex}
+  .fab{display:flex}
+  .dscrim{display:block}
+  /* 悬浮参数按钮不遮挡最后一屏内容 */
+  .canvas-body{padding-bottom:80px}
+  .shell{grid-template-columns:var(--rail-w) minmax(0,1fr) 0}
+  .bar-crumb{display:none}
+  .bar-actions .tbtn span.lbl{display:none}
+  .bar-actions .tbtn{padding:6px 8px}
+}
+@media(max-width:700px){
+  :root{--bar-h:48px;--dock-h:50px;--rail-w:0px}
+  .shell{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:var(--bar-h) 40px minmax(0,1fr) var(--dock-h);
+    grid-template-areas:"bar" "rail" "canvas" "dock";
+  }
+  .rail{
+    border-right:none;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:2px;padding:0 8px;overflow-x:auto;overflow-y:hidden;
+  }
+  .rail-item{
+    grid-template-columns:1fr;padding:0 10px;height:100%;border-left:none;
+    border-bottom:2px solid transparent;justify-items:center;flex:none;
+  }
+  .rail-item.on{border-left:none;border-bottom-color:var(--cyan)}
+  .rail-n{font-size:10px}
+  .rail-item::after{font-size:9px}
+  .canvas-head{padding:12px 14px 0;flex-wrap:wrap;gap:8px}
+  .canvas-body{padding:12px 14px 14px}
+  .brand-sub,.bar-crumb{display:none}
+  .bar-actions .tbtn span.lbl{display:none}
+  .dock{padding:0 10px;overflow-x:auto}
+  .dock-cell{padding:0 11px}
+  .ov{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:auto;flex:none;gap:14px}
+  .ov-r>.card{flex:none!important;min-height:auto!important}
+  .ov-hc{min-height:206px}
+  .lim{flex:none;grid-template-rows:none;grid-auto-rows:auto}
+  .split,.split2{grid-template-columns:1fr}
+  .lim-c{min-height:0}
+  .canvas-h1{font-size:20px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{
+  transition:none!important;animation:none!important;
+}
+</style>
+<!-- tl-vendor-lab v1：收编实验室页的两个必要修复（不碰配色——实验室保持暗色，与亮色博物馆区分）
+     由 build.sh 注入 </head> 之前 -->
+<style id="tl-vendor-lab">
+/* 入场动画（.rv）靠 IntersectionObserver 加 .in，在 vendor-shell 的固定视口外壳里
+   观测时机不稳，会停在 opacity:0 让正文整块不可见 → 强制可见，动画退化为无 */
+.rv,.rv.in{opacity:1 !important;transform:none !important}
+
+/* 外壳兜底：若没有任何 section 被标 .on（外壳脚本挑主容器失败时会这样），
+   亮出第一节，避免整页空白 */
+.vsh-root:not(:has(>section.on))>section:first-of-type{display:block !important;
+  flex:1 1 auto !important;min-height:0 !important;overflow-y:auto !important}
+</style>
+</head>
+<body>
+<canvas id="field" aria-hidden="true"></canvas>
+<div class="atmos" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="shell">
+  <header class="bar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.2" stroke="#5ee7ff" stroke-width="1.1" opacity=".85"/>
+        <circle cx="12" cy="12" r="5.4" stroke="#a78bfa" stroke-width=".9" opacity=".5" stroke-dasharray="2 3"/>
+        <circle cx="12" cy="12" r="1.9" fill="#ffc76b"/>
+      </svg>
+      <span class="brand-txt">认证<b>地平线</b></span>
+      <span class="brand-sub">Certification Horizon<br>of Learned Computation</span>
+    </div>
+    <div class="bar-crumb">
+      <span id="crumbN">01</span><span class="sl">/</span><span>09</span>
+      <span class="sl">·</span><b id="crumbT">总览</b>
+    </div>
+    <div class="bar-sp"></div>
+    <div class="bar-actions">
+      <button class="tbtn" id="btnPreset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="lbl">预设</span></button>
+      <button class="tbtn" id="btnPin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v10M8 7l4-4 4 4M6 17h12M8 21h8"/></svg><span class="lbl">钉住</span></button>
+      <button class="tbtn" id="btnSweep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h4l2-6 3 12 2-6h7"/></svg><span class="lbl">扫描</span></button>
+      <button class="tbtn" id="btnShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="lbl">分享</span></button>
+      <button class="tbtn" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg><span class="lbl">导出</span></button>
+      <button class="tbtn primary" id="btnPal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span class="lbl">搜索</span><span class="kk">⌘K</span></button>
+    </div>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="模块"></nav>
+
+  <section class="canvas" id="canvas">
+    <div class="canvas-head">
+      <div class="canvas-title">
+        <div class="canvas-kicker" id="cKick">OVERVIEW</div>
+        <h1 class="canvas-h1" id="cTitle">总览</h1>
+      </div>
+      <div class="canvas-meta" id="cMeta"></div>
+    </div>
+    <div class="canvas-body" id="cBody"></div>
+  </section>
+
+  <aside class="insp" id="insp" aria-label="参数"></aside>
+
+  <footer class="dock" id="dock"></footer>
+</div>
+
+<div class="pop" id="presetPop">
+  <div class="pop-h">预设场景</div>
+  <div id="presetList"></div>
+</div>
+
+<div class="ovl" id="ovlPal">
+  <div class="ovl-mask" data-close="pal"></div>
+  <div class="pal">
+    <div class="pal-in">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#69738c" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <input id="palInput" placeholder="跳转模块、应用预设、执行动作…" autocomplete="off" spellcheck="false">
+      <span class="esc">ESC</span>
+    </div>
+    <div class="pal-list" id="palList"></div>
+  </div>
+</div>
+
+<div class="ovl" id="ovlTour">
+  <div class="ovl-mask" data-close="tour"></div>
+  <div class="tour-spot" id="tourSpot"></div>
+  <div class="tour-tip" id="tourTip">
+    <div class="tour-step" id="tourStep">STEP 1 / 6</div>
+    <div class="tour-t" id="tourT">标题</div>
+    <div class="tour-b" id="tourB">说明</div>
+    <div class="tour-f">
+      <button class="tour-btn" id="tourSkip">跳过</button>
+      <span class="sp"></span>
+      <button class="tour-btn" id="tourPrev">上一步</button>
+      <button class="tour-btn pri" id="tourNext">下一步</button>
+    </div>
+  </div>
+</div>
+
+<div class="ovl" id="ovlKeys">
+  <div class="ovl-mask" data-close="keys"></div>
+  <div class="sheet">
+    <h3>键盘</h3>
+    <div class="sheet-g">
+      <div class="sheet-r"><span>切换模块</span><span class="kb">1 – 9</span></div>
+      <div class="sheet-r"><span>上/下一个模块</span><span class="kb">[ ]</span></div>
+      <div class="sheet-r"><span>命令面板</span><span class="kb">⌘K / Ctrl K</span></div>
+      <div class="sheet-r"><span>钉住当前参数</span><span class="kb">P</span></div>
+      <div class="sheet-r"><span>扫描可认证地平线</span><span class="kb">S</span></div>
+      <div class="sheet-r"><span>分享链接</span><span class="kb">L</span></div>
+      <div class="sheet-r"><span>导出数据</span><span class="kb">E</span></div>
+      <div class="sheet-r"><span>引导</span><span class="kb">T</span></div>
+      <div class="sheet-r"><span>微调当前参数</span><span class="kb">← →</span></div>
+      <div class="sheet-r"><span>参数抽屉（窄屏）</span><span class="kb">I</span></div>
+      <div class="sheet-r"><span>重置全部参数</span><span class="kb">R</span></div>
+      <div class="sheet-r"><span>关闭浮层</span><span class="kb">ESC</span></div>
+      <div class="sheet-r"><span>本帮助</span><span class="kb">?</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<button class="fab" id="fab" aria-label="打开参数面板">
+  <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h12M20 17h0"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="17" r="2"/></svg>
+  <span>参数</span><span class="n" id="fabN">0</span>
+</button>
+<div class="dscrim" id="dScrim"></div>
+<div class="drawer" id="drawer">
+  <div class="d-head">
+    <div class="d-t">参数<span>Parameters</span></div>
+    <button class="d-x" id="dClose" aria-label="关闭">×</button>
+  </div>
+  <div class="d-body" id="dBody"></div>
+</div>
+
+<noscript>
+  <div style="padding:80px 32px;max-width:720px;margin:0 auto;font-family:ui-monospace,monospace;font-size:13px;line-height:2;color:#8b95ad">
+    本工作台的全部曲线与判词由页面内的定理表达式实时计算，需要启用 JavaScript。<br><br>
+    结论不受影响：受保护切口的端点对比恰为 ρ<sup>ℓ</sup>，固定误差的证据代价为 Θ(ρ<sup>−2ℓ</sup>)，
+    检测时钟 t<sub>det</sub> ~ 2L/log N 与能力时钟 t<sub>acc</sub> ~ L 具有不同渐近尺度。
+  </div>
+</noscript>
+<script>
+/* ============================================================================
+   认证地平线 · 数学内核
+   ----------------------------------------------------------------------------
+   所有函数都是论文公式的直接实现，纯函数、无依赖、无副作用。
+   与论文编号的对应关系写在每个函数上方。
+   ========================================================================== */
+const E = (function () {
+  "use strict";
+
+  const LOG = Math.log;
+
+  /* ---------- 小工具 ---------- */
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  /* ==========================================================================
+     §3 核与保留率
+     T_a = ρ P_a + (1-ρ) U        (2)
+     ========================================================================== */
+
+  /** 行随机矩阵：ρ·P + (1-ρ)·U，P 是置换矩阵（用 shift 表示） */
+  function kernel(rho, K, shift) {
+    const M = [];
+    const u = 1 / K;
+    for (let i = 0; i < K; i++) {
+      const row = new Array(K).fill(0);
+      for (let j = 0; j < K; j++) row[j] = (1 - rho) * u;
+      row[((i + shift) % K + K) % K] += rho;
+      M.push(row);
+    }
+    return M;
+  }
+
+  /** 矩阵乘 */
+  function matmul(A, B) {
+    const K = A.length;
+    const C = [];
+    for (let i = 0; i < K; i++) {
+      const row = new Array(K).fill(0);
+      for (let k = 0; k < K; k++) {
+        const a = A[i][k];
+        if (a === 0) continue;
+        for (let j = 0; j < K; j++) row[j] += a * B[k][j];
+      }
+      C.push(row);
+    }
+    return C;
+  }
+
+  /** T_w = ρ^ℓ P_w + (1-ρ^ℓ) U  —— 逐元素直接构造，用于和 matmul 结果对照 */
+  function kernelWord(rho, K, shift, l) {
+    const r = Math.pow(rho, l);
+    const u = 1 / K;
+    const M = [];
+    for (let i = 0; i < K; i++) {
+      const row = new Array(K).fill((1 - r) * u);
+      row[((i + shift * l) % K + K) % K] += r;
+      M.push(row);
+    }
+    return M;
+  }
+
+  /** 用 ℓ 次 matmul 累积，检验定理 2 的归纳（返回最大偏差） */
+  function verifyTheorem2(rho, K, shift, l) {
+    let acc = null;
+    for (let i = 0; i < l; i++) {
+      const T = kernel(rho, K, shift);
+      acc = acc === null ? T : matmul(acc, T);
+    }
+    if (acc === null) acc = kernel(rho, K, 0);
+    const direct = kernelWord(rho, K, shift, l);
+    let d = 0;
+    for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) d = Math.max(d, Math.abs(acc[i][j] - direct[i][j]));
+    return d;
+  }
+
+  /* ==========================================================================
+     §4 证据代价 · Theorem 3
+     α = r + (1-r)/K,  β = (1-r)/K
+     B_K(r) = (K-2)β + 2√(αβ)
+     C_K(r) = -log B_K(r)
+     ========================================================================== */
+  function alphaBeta(r, K) {
+    const b = (1 - r) / K;
+    return { a: r + b, b: b };
+  }
+
+  function BK(r, K) {
+    const { a, b } = alphaBeta(r, K);
+    return (K - 2) * b + 2 * Math.sqrt(a * b);
+  }
+
+  function CK(r, K) {
+    if (r <= 0) return 0;
+    if (r >= 1) return Infinity;
+    const B = BK(r, K);
+    return B <= 0 ? Infinity : -LOG(B);
+  }
+
+  /** 小 r 展开：C_K(r) ≈ K r² / 4 */
+  function CKsmall(r, K) {
+    return (K * r * r) / 4;
+  }
+
+  /** 充分试验数 N* = ⌈log(1/δ)/C_K(r)⌉（eq. 8 的整数上界） */
+  function nStar(delta, r, K) {
+    const c = CK(r, K);
+    if (!isFinite(c) || c <= 0) return Infinity;
+    return Math.ceil(LOG(1 / delta) / c);
+  }
+
+  /** 定理 3 的两侧界：¼e^{-2NC} ≤ e*_N ≤ ½e^{-NC} */
+  function estarBounds(N, r, K) {
+    const c = CK(r, K);
+    return { lo: 0.25 * Math.exp(-2 * N * c), hi: 0.5 * Math.exp(-N * c) };
+  }
+
+  /**
+   * 精确有限递归（eq. 46）：D_N = n₁ − n₀ 的三点分布卷积 N 次，
+   * e*_N = P(D_N < 0) + ½ P(D_N = 0)。这是精确的概率表达式，非渐近。
+   */
+  function estarExact(N, r, K) {
+    const { a, b } = alphaBeta(r, K);
+    const z0 = (K - 2) * b;
+    const size = 2 * N + 1;
+    const off = N;
+    let cur = new Float64Array(size);
+    cur[off] = 1;
+    for (let step = 0; step < N; step++) {
+      const nxt = new Float64Array(size);
+      for (let i = 0; i < size; i++) {
+        const p = cur[i];
+        if (p === 0) continue;
+        if (i + 1 < size) nxt[i + 1] += p * a;
+        if (i - 1 >= 0) nxt[i - 1] += p * b;
+        if (z0 > 0) nxt[i] += p * z0;
+      }
+      cur = nxt;
+    }
+    let neg = 0;
+    for (let i = 0; i < off; i++) neg += cur[i];
+    return neg + 0.5 * cur[off];
+  }
+
+  /* ==========================================================================
+     §5 写入预算 · Theorem 4
+     m = 2h+1,  c = h+1,  M = min(N, ⌊W/c⌋),  e* = e*_M(ρ^ℓ)
+     ========================================================================== */
+  function cOf(m) {
+    return (m + 1) / 2;
+  }
+
+  function budgetM(N, W, m) {
+    const c = cOf(m);
+    return Math.min(N, Math.floor(W / c));
+  }
+
+  function budgetError(N, W, m, r, K) {
+    const M = budgetM(N, W, m);
+    if (M <= 0) return 0.5;
+    return estarExact(Math.min(M, 400), r, K || 2);
+  }
+
+  /* ==========================================================================
+     §6 学习动力学 · Theorem 5
+     z − 1 + (K−1) log z = K t
+     ========================================================================== */
+  function zOfT(t, K) {
+    if (t <= 0) return 1;
+    const target = 1 + K * t;
+    let lo = 1,
+      hi = 1 + K * t + 2;
+    for (let i = 0; i < 90; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (mid + (K - 1) * LOG(mid) < target) lo = mid;
+      else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  }
+
+  function stateOfT(t, K) {
+    const z = zOfT(t, K);
+    return { z, p: z / (z + K - 1), rho: (z - 1) / (z + K - 1) };
+  }
+
+  function AL(t, K, L) {
+    const { rho } = stateOfT(t, K);
+    return (1 + (K - 1) * Math.pow(rho, L)) / K;
+  }
+
+  function FL(t, K, L) {
+    const { p } = stateOfT(t, K);
+    return Math.pow(p, L);
+  }
+
+  /** z = (1 + (K−1)r)/(1−r)  —— ρ 到 z 的逆 */
+  function zFromRho(r, K) {
+    return (1 + (K - 1) * r) / (1 - r);
+  }
+
+  /** z = (K−1)q/(1−q)  —— p 到 z 的逆 */
+  function zFromP(q, K) {
+    return ((K - 1) * q) / (1 - q);
+  }
+
+  /** t 由 z 反解：(z−1+(K−1)log z)/K */
+  function tOfZ(z, K) {
+    return (z - 1 + (K - 1) * LOG(z)) / K;
+  }
+
+  /** eq. 39 端点达标时刻（精确） */
+  function tAcc(K, L, eps) {
+    const h = 1 - (K * eps) / (K - 1);
+    if (h <= 0) return Infinity;
+    const r = Math.pow(h, 1 / L);
+    return tOfZ(zFromRho(r, K), K);
+  }
+
+  /** eq. 40 轨迹达标时刻（精确），可能为 0 */
+  function tTr(K, L, eps) {
+    const q = Math.pow(1 - eps, 1 / L);
+    if (q <= 1 / K) return 0;
+    return tOfZ(zFromP(q, K), K);
+  }
+
+  /** Corollary 6：t_det ~ 2L / log N */
+  function tDet(L, N) {
+    if (N <= 1) return Infinity;
+    return (2 * L) / LOG(N);
+  }
+
+  /** 渐近斜率（每单位 L） */
+  function accSlope(K, eps) {
+    const h = 1 - (K * eps) / (K - 1);
+    return h <= 0 ? Infinity : 1 / -LOG(h);
+  }
+  /**
+   * eq. (18)：t_tr / L → (K−1) / (K · (−log(1−ε)))
+   * 注意分母：PDF 抽取时 "K[− log(1 − ε)]" 常被读成乘法，实测 L=64 时为 13.00 vs 13.06。
+   */
+  function trSlope(K, eps) {
+    const b = -LOG(1 - eps);
+    return b <= 0 ? Infinity : (K - 1) / K / b;
+  }
+
+  /* ==========================================================================
+     §6 局部重置证书 · Theorem 7
+     Q* = D · log(1/δ) / (−log(1−η))
+     组合：1 − (1−η)^L ≤ Lη
+     ========================================================================== */
+  function qStar(D, delta, eta) {
+    return (D * LOG(1 / delta)) / -LOG(1 - eta);
+  }
+
+  function etaForEps(eps, L) {
+    return 1 - Math.pow(1 - eps, 1 / L);
+  }
+
+  /** 用 η 阈值时的充分预算：D·⌈L·log(1/δ)/(−log(1−ε))⌉ */
+  function qSufficient(D, delta, eps, L) {
+    return D * Math.ceil((L * LOG(1 / delta)) / -LOG(1 - eps));
+  }
+
+  /* ==========================================================================
+     §7 扰动地板 · Proposition 12
+     |r̃ − ρ^ℓ| ≤ 2ℓξ
+     ========================================================================== */
+  function floorBound(l, xi) {
+    return Math.min(1, 2 * l * xi);
+  }
+
+  /** 信号 ρ^ℓ 掉到地板之下的临界 ℓ（二分） */
+  function floorCrossL(rho, xi, lMax) {
+    let lo = 1,
+      hi = lMax;
+    if (Math.pow(rho, lo) <= floorBound(lo, xi)) return lo;
+    if (Math.pow(rho, hi) > floorBound(hi, xi)) return null;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (Math.pow(rho, mid) > floorBound(mid, xi)) lo = mid;
+      else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  }
+
+  /* ==========================================================================
+     派生量：把一组全局参数一次算完
+     ========================================================================== */
+  function derive(P) {
+    const K = P.K, rho = P.rho, l = P.l, L = P.L, xi = P.xi, eps = P.eps;
+    const delta = P.delta, W = P.W, m = P.m;
+    const N = Math.pow(2, P.nExp);
+    const r = Math.pow(rho, l);
+    const ck = CK(r, K);
+    let ns;
+    if (r >= 1 - 1e-12) ns = 1;
+    else if (!isFinite(ck) || ck <= 0) ns = Infinity;
+    else ns = Math.ceil(LOG(1 / delta) / ck);
+
+    const c = cOf(m);
+    const M = budgetM(N, W, m);
+    /* 审计误差与定理 3 用同一个 K：受保护切口的端点是 K 元符号，不是二元的。 */
+    const eB = M > 0 ? estarExact(Math.min(M, 380), r, K) : 0.5;
+
+    const tdet = tDet(L, N);
+    const tacc = tAcc(K, L, eps);
+    const ttr = tTr(K, L, eps);
+    const floor = Math.min(1, 2 * l * xi);
+
+    const D = K * K;
+    const eta = etaForEps(eps, L);
+    const Q = qStar(D, delta, eta);
+    const avail = N * L;
+
+    /* 三张证书的状态 */
+    let sEv = "no";
+    if (isFinite(ns)) { if (N >= ns) sEv = "ok"; else if (N * 2 >= ns) sEv = "thin"; }
+    let sBd = "no";
+    if (M === 0) sBd = "no";
+    else if (eB <= delta) sBd = "ok";
+    else if (eB <= delta * 2) sBd = "thin";
+    let sLc = "no";
+    if (avail >= Q) sLc = "ok";
+    else if (avail * 2 >= Q) sLc = "thin";
+
+    return {
+      K, rho, l, L, xi, eps, delta, W, m, N, r, ck, ns, c, M, eB,
+      tdet, tacc, ttr, floor, D, eta, Q, avail,
+      fAtDet: FL(tdet, K, L), aAtDet: AL(tdet, K, L),
+      sEv, sBd, sLc
+    };
+  }
+
+  /**
+   * 扫描可认证地平线：每个判据在 ℓ = 1..lMax 上还成立的最大 ℓ。
+   * 返回三个独立地平线 + 三者同时成立的最大 ℓ。
+   */
+  function sweep(P, lMax) {
+    const K = P.K, rho = P.rho, delta = P.delta, xi = P.xi;
+    const N = Math.pow(2, P.nExp);
+    const c = cOf(P.m), M = budgetM(N, P.W, P.m);
+    const Mc = Math.min(M, 220);
+    let lEv = 0, lBd = 0, lFl = 0;
+    for (let l = 1; l <= lMax; l++) {
+      const r = Math.pow(rho, l);
+      const ck = CK(r, K);
+      if (isFinite(ck) && ck > 0 && Math.ceil(LOG(1 / delta) / ck) <= N) lEv = l;
+      if (Mc > 0 && estarExact(Mc, r, K) <= delta) lBd = l;
+      if (Math.pow(rho, l) > Math.min(1, 2 * l * xi)) lFl = l;
+    }
+    return { lEv, lBd, lFl, lAll: Math.min(lEv, lBd, lFl) };
+  }
+
+  /* ==========================================================================
+     格式化
+     ========================================================================== */
+  function fmtNum(v, d) {
+    if (!isFinite(v)) return "∞";
+    if (v === 0) return "0";
+    const a = Math.abs(v);
+    if (a >= 1e6 || a < 1e-3) {
+      const e = Math.floor(Math.log10(a));
+      const m = v / Math.pow(10, e);
+      return (Math.abs(m) >= 10 ? m.toFixed(0) : m.toFixed(2)) + "e" + e;
+    }
+    if (a >= 1000) return v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (a >= 100) return v.toFixed(d === undefined ? 0 : d);
+    if (a >= 1) return v.toFixed(d === undefined ? 2 : d);
+    return v.toFixed(d === undefined ? 3 : d);
+  }
+
+  function fmtInt(v) {
+    if (!isFinite(v)) return "∞";
+    if (v >= 1e7) return fmtNum(v);
+    return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function fmtPct(v, d) {
+    return (v * 100).toFixed(d === undefined ? 1 : d) + "%";
+  }
+
+  return {
+    clamp, lerp,
+    kernel, matmul, kernelWord, verifyTheorem2,
+    alphaBeta, BK, CK, CKsmall, nStar, estarBounds, estarExact,
+    cOf, budgetM, budgetError,
+    zOfT, stateOfT, AL, FL, zFromRho, zFromP, tOfZ, tAcc, tTr, tDet, accSlope, trSlope,
+    qStar, etaForEps, qSufficient,
+    floorBound, floorCrossL,
+    derive, sweep,
+    fmtNum, fmtInt, fmtPct
+  };
+})();
+</script>
+<script>
+/* ============================================================================
+   认证地平线 · 可视化原语
+   ========================================================================== */
+const V = (function () {
+  "use strict";
+
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+
+  const C = {
+    cyan: "#5ee7ff", violet: "#a78bfa", amber: "#ffc76b",
+    rose: "#ff6b8b", emerald: "#4ade80", gold: "#f5d67b",
+    ink: "#e9edf7", dim: "#8b95ad", dim2: "#69738c", faint: "#434c62",
+    line: "rgba(150,168,205,.10)", line2: "rgba(150,168,205,.20)"
+  };
+
+  const staticMode = /[?&]static=1/.test(location.search);
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function el(name, attrs) {
+    const n = document.createElementNS(NS, name);
+    if (attrs) for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  /* ---------------------------------------------------------------- scales */
+  function makeScale(dom, rng, isLog) {
+    const [d0, d1] = dom;
+    const [r0, r1] = rng;
+    if (!isLog) {
+      const span = d1 - d0 || 1;
+      return v => r0 + ((v - d0) / span) * (r1 - r0);
+    }
+    const a = Math.log(Math.max(d0, 1e-300)), b = Math.log(Math.max(d1, 1e-300));
+    const span = b - a || 1;
+    return v => r0 + ((Math.log(Math.max(v, 1e-300)) - a) / span) * (r1 - r0);
+  }
+
+  function logTicks(lo, hi, maxN) {
+    lo = Math.max(lo, 1e-300);
+    const e0 = Math.floor(Math.log10(lo)), e1 = Math.ceil(Math.log10(hi));
+    const out = [];
+    const step = Math.max(1, Math.ceil((e1 - e0) / (maxN || 6)));
+    for (let e = e0; e <= e1; e += step) {
+      const v = Math.pow(10, e);
+      if (v >= lo * 0.999 && v <= hi * 1.001) out.push(v);
+    }
+    return out;
+  }
+
+  function linTicks(lo, hi, maxN) {
+    const n = maxN || 5;
+    const span = hi - lo;
+    if (span === 0) return [lo];
+    const raw = span / n;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    const step = (norm >= 7.5 ? 10 : norm >= 3.5 ? 5 : norm >= 1.5 ? 2 : 1) * mag;
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(Math.abs(v) < 1e-12 ? 0 : v);
+    return out;
+  }
+
+  /* ------------------------------------------------------------------ chart */
+  let uid = 0;
+  function chart(svg, cfg) {
+    const vb = (svg.getAttribute("viewBox") || "0 0 600 400").split(/\s+/).map(Number);
+    const baseW = cfg.w || vb[2], baseH = cfg.h || vb[3];
+    let W = baseW, H = baseH;
+    if (cfg.responsive !== false) {
+      const host = svg.parentElement;
+      const cw = Math.round(host ? host.clientWidth : baseW) || baseW;
+      if (cw < baseW) {
+        W = Math.max(280, cw);
+        H = Math.max(Math.round(baseH * 0.6), Math.round((baseH * W) / baseW));
+      } else if (cw > baseW * 1.06) {
+        W = Math.min(cw, 1340);
+        H = Math.round((baseH * W) / baseW);
+      }
+    }
+    const pad = Object.assign({ l: 62, r: 20, t: 24, b: 40 }, cfg.pad || {});
+    if (W < 560) { pad.l = Math.min(pad.l, 50); pad.r = Math.min(pad.r, 12); pad.t = Math.min(pad.t, 20); pad.b = Math.min(pad.b, 34); }
+    svg.innerHTML = "";
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    const id = "g" + (++uid);
+
+    const xDom = cfg.xDomain, yDom = cfg.yDomain;
+    const X = makeScale(xDom, [pad.l, pad.l + iw], cfg.xLog);
+    const Y = makeScale(yDom, [pad.t + ih, pad.t], cfg.yLog);
+
+    const gGrid = el("g"), gAxis = el("g", { class: "axis" }), gData = el("g");
+    svg.appendChild(gGrid); svg.appendChild(gAxis); svg.appendChild(gData);
+
+    const TICK = "font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;font-size:9.5px;fill:#7c869e;letter-spacing:.02em";
+
+    /* ---- horizontal grid + y ticks ---- */
+    const yT = cfg.yTicks || (cfg.yLog ? logTicks(yDom[0], yDom[1], 5) : linTicks(yDom[0], yDom[1], 5));
+    yT.forEach(v => {
+      const y = Y(v);
+      if (y < pad.t - 1 || y > pad.t + ih + 1) return;
+      gGrid.appendChild(el("line", { x1: pad.l, x2: pad.l + iw, y1: y, y2: y, class: "gridline" }));
+      const t = el("text", { x: pad.l - 9, y: y + 3.2, "text-anchor": "end", style: TICK });
+      t.textContent = cfg.yFmt ? cfg.yFmt(v) : E.fmtNum(v);
+      gAxis.appendChild(t);
+    });
+
+    /* ---- vertical grid + x ticks ---- */
+    const xT = cfg.xTicks || (cfg.xLog ? logTicks(xDom[0], xDom[1], 6) : linTicks(xDom[0], xDom[1], 6));
+    xT.forEach(v => {
+      const x = X(v);
+      if (x < pad.l - 1 || x > pad.l + iw + 1) return;
+      gGrid.appendChild(el("line", { x1: x, x2: x, y1: pad.t, y2: pad.t + ih, class: "gridline" }));
+      const t = el("text", { x: x, y: pad.t + ih + 17, "text-anchor": "middle", style: TICK });
+      t.textContent = cfg.xFmt ? cfg.xFmt(v) : E.fmtNum(v);
+      gAxis.appendChild(t);
+    });
+
+    /* ---- baseline ---- */
+    gAxis.appendChild(el("line", {
+      x1: pad.l, x2: pad.l + iw, y1: pad.t + ih, y2: pad.t + ih,
+      stroke: "rgba(150,168,205,.26)", "stroke-width": 1
+    }));
+
+    /* ---- axis labels ---- */
+    if (cfg.xLabel) {
+      const t = el("text", { x: pad.l + iw, y: pad.t + ih + 33, "text-anchor": "end", style: "fill:#69738c;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em" });
+      t.textContent = cfg.xLabel;
+      gAxis.appendChild(t);
+    }
+    if (cfg.yLabel) {
+      const t = el("text", { x: pad.l, y: pad.t - 9, "text-anchor": "start", style: "fill:#69738c;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em" });
+      t.textContent = cfg.yLabel;
+      gAxis.appendChild(t);
+    }
+
+    /* ---- bands ---- */
+    (cfg.bands || []).forEach(b => {
+      const y0 = Y(b.from), y1 = Y(b.to);
+      gGrid.appendChild(el("rect", {
+        x: pad.l, y: Math.min(y0, y1), width: iw, height: Math.abs(y1 - y0),
+        fill: b.color || "rgba(255,107,139,.06)"
+      }));
+      if (b.label) {
+        const t = el("text", { x: pad.l + 8, y: Math.min(y0, y1) + 13, style: `fill:${b.labelColor || C.rose};font-family:var(--f-mono);font-size:9px;letter-spacing:.08em` });
+        t.textContent = b.label;
+        gGrid.appendChild(t);
+      }
+    });
+
+    /* ---- clip ---- */
+    const clip = el("clipPath", { id: "cp" + uid });
+    clip.appendChild(el("rect", { x: pad.l, y: pad.t, width: iw, height: ih }));
+    svg.appendChild(clip);
+    const gClip = el("g", { "clip-path": `url(#cp${uid})` });
+    gData.appendChild(gClip);
+
+    /* ---- hlines ---- */
+    (cfg.hlines || []).forEach(h => {
+      const y = Y(h.y);
+      gClip.appendChild(el("line", {
+        x1: pad.l, x2: pad.l + iw, y1: y, y2: y,
+        stroke: h.color || "rgba(150,168,205,.3)", "stroke-width": h.width || 1,
+        "stroke-dasharray": h.dash || "3 4", opacity: h.opacity === undefined ? .9 : h.opacity
+      }));
+      if (h.label) {
+        const t = el("text", { x: pad.l + iw - 4, y: y - 5, "text-anchor": "end", style: `fill:${h.color || C.dim};font-family:var(--f-mono);font-size:9px;letter-spacing:.06em` });
+        t.textContent = h.label;
+        gData.appendChild(t);
+      }
+    });
+
+    /* ---- vlines ---- */
+    (cfg.vlines || []).forEach(v => {
+      const x = X(v.x);
+      gClip.appendChild(el("line", {
+        x1: x, x2: x, y1: pad.t, y2: pad.t + ih,
+        stroke: v.color || "rgba(94,231,255,.5)", "stroke-width": v.width || 1,
+        "stroke-dasharray": v.dash || "4 4", opacity: v.opacity === undefined ? .85 : v.opacity
+      }));
+      if (v.label) {
+        const t = el("text", {
+          x: x + 5, y: pad.t + (v.labelY || 12),
+          style: `fill:${v.color || C.cyan};font-family:var(--f-mono);font-size:9px;letter-spacing:.06em`
+        });
+        t.textContent = v.label;
+        gData.appendChild(t);
+      }
+    });
+
+    /* ---- series ---- */
+    const paths = [];
+    (cfg.series || []).forEach((s, si) => {
+      const pts = s.pts.filter(p => isFinite(p[1]) && (!cfg.yLog || p[1] > 0));
+      if (!pts.length) return;
+
+      if (s.area) {
+        const d = "M" + X(pts[0][0]) + "," + (pad.t + ih) +
+          pts.map(p => `L${X(p[0])},${Y(p[1])}`).join("") +
+          `L${X(pts[pts.length - 1][0])},${pad.t + ih}Z`;
+        const gid = id + "a" + si;
+        const grad = el("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
+        grad.appendChild(el("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": s.areaOpacity || .18 }));
+        grad.appendChild(el("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": 0 }));
+        const defs = el("defs"); defs.appendChild(grad); svg.appendChild(defs);
+        gClip.appendChild(el("path", { d, fill: `url(#${gid})` }));
+      }
+
+      if (s.step) {
+        let d = `M${X(pts[0][0])},${Y(pts[0][1])}`;
+        for (let i = 1; i < pts.length; i++) d += `L${X(pts[i][0])},${Y(pts[i - 1][1])}L${X(pts[i][0])},${Y(pts[i][1])}`;
+        const p = el("path", { d, fill: "none", stroke: s.color, "stroke-width": s.width || 1.8, "stroke-linejoin": "round" });
+        gClip.appendChild(p); paths.push(p);
+      } else {
+        const d = "M" + pts.map(p => `${X(p[0])},${Y(p[1])}`).join("L");
+        const p = el("path", {
+          d, fill: "none", stroke: s.color, "stroke-width": s.width || 1.8,
+          "stroke-linecap": "round", "stroke-linejoin": "round",
+          "stroke-dasharray": s.dash || "none", opacity: s.opacity === undefined ? 1 : s.opacity
+        });
+        gClip.appendChild(p); paths.push(p);
+        if (s.animate && !reduce && !staticMode) {
+          const len = p.getTotalLength ? p.getTotalLength() : 1200;
+          p.style.strokeDasharray = s.dash ? s.dash : `${len}`;
+          p.style.strokeDashoffset = s.dash ? 0 : `${len}`;
+          p.style.transition = "stroke-dashoffset 1.5s cubic-bezier(.16,1,.3,1)";
+          requestAnimationFrame(() => requestAnimationFrame(() => { p.style.strokeDashoffset = 0; }));
+        }
+      }
+
+      if (s.dots) {
+        pts.forEach(p => {
+          if (s.dotSkip && s.dotSkip(p)) return;
+          gClip.appendChild(el("circle", {
+            cx: X(p[0]), cy: Y(p[1]), r: s.dotR || 2.6,
+            fill: s.color, opacity: s.dotOpacity === undefined ? 1 : s.dotOpacity
+          }));
+        });
+      }
+    });
+
+    /* ---- marks (points with ring) ---- */
+    (cfg.marks || []).forEach(m => {
+      const x = X(m.x), y = Y(m.y);
+      gClip.appendChild(el("circle", { cx: x, cy: y, r: 7, fill: m.color, opacity: .16 }));
+      gClip.appendChild(el("circle", { cx: x, cy: y, r: 3.2, fill: m.color }));
+      gClip.appendChild(el("circle", { cx: x, cy: y, r: 6, fill: "none", stroke: m.color, "stroke-width": 1, opacity: .7 }));
+      if (m.label) {
+        const t = el("text", {
+          x: x + (m.dx === undefined ? 10 : m.dx), y: y + (m.dy === undefined ? -8 : m.dy),
+          "text-anchor": m.anchor || "start",
+          style: `fill:${m.color};font-family:var(--f-mono);font-size:9.5px;letter-spacing:.05em`
+        });
+        t.textContent = m.label;
+        gData.appendChild(t);
+      }
+    });
+
+    return { X, Y, pad, iw, ih, W, H, xDom, yDom, svg, gData, gClip, id };
+  }
+
+  /* ------------------------------------------------------------------ hover */
+  let tipEl = null;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement("div");
+      tipEl.className = "tip";
+      document.body.appendChild(tipEl);
+    }
+    return tipEl;
+  }
+
+  /**
+   * 通用悬停：series 为 [{pts:[[x,y]...], label, color, fmt}]
+   */
+  function bindHover(svg, geom, series, xLabelFn) {
+    if (!series || !series.length) return;
+    svg._hover = { geom, series, xLabelFn };
+    if (svg._hoverBound) return;
+    svg._hoverBound = true;
+    const t = tip();
+    let raf = 0, lastEvt = null;
+
+    function move(e) {
+      lastEvt = e;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const st = svg._hover;
+        if (!st) return;
+        const g2 = st.geom, ser = st.series;
+        const rect = svg.getBoundingClientRect();
+        const vb = svg.viewBox.baseVal;
+        const sx = (lastEvt.clientX - rect.left) / rect.width * vb.width;
+        if (sx < g2.pad.l - 6 || sx > g2.pad.l + g2.iw + 6) { t.classList.remove("on"); return; }
+
+        let best = null;
+        ser.forEach(s => {
+          let bp = null, bd = Infinity;
+          s.pts.forEach(p => {
+            if (!isFinite(p[1])) return;
+            const d = Math.abs(g2.X(p[0]) - sx);
+            if (d < bd) { bd = d; bp = p; }
+          });
+          if (bp) best = best || bp;
+        });
+        if (!best) { t.classList.remove("on"); return; }
+
+        let html = `<div class="k">${st.xLabelFn ? st.xLabelFn(best[0]) : "x = " + E.fmtNum(best[0])}</div>`;
+        ser.forEach(s => {
+          let bp = null, bd = Infinity;
+          s.pts.forEach(p => { if (!isFinite(p[1])) return; const d = Math.abs(p[0] - best[0]); if (d < bd) { bd = d; bp = p; } });
+          if (!bp) return;
+          html += `<div><span style="color:${s.color}">■</span> ${s.label} <b>${s.fmt ? s.fmt(bp[1]) : E.fmtNum(bp[1])}</b></div>`;
+        });
+        t.innerHTML = html;
+        t.classList.add("on");
+        const px = rect.left + window.scrollX + (g2.X(best[0]) / vb.width) * rect.width;
+        const py = rect.top + window.scrollY + (g2.pad.t + 30);
+        t.style.left = px + "px";
+        t.style.top = py + "px";
+      });
+    }
+    svg.addEventListener("mousemove", move);
+    svg.addEventListener("mouseleave", () => t.classList.remove("on"));
+  }
+
+  /* --------------------------------------------------------------- matrix */
+  /**
+   * 画 K×K 热力矩阵。值越大越亮（青），越小越暗。
+   */
+  function matrix(svg, opt) {
+    const K = opt.K, M = opt.matrix;
+    const vb = (svg.getAttribute("viewBox") || "0 0 520 400").split(/\s+/).map(Number);
+    const W = vb[2], H = vb[3];
+    svg.innerHTML = "";
+
+    const padL = 34, padT = 26, padR = 8, padB = 26;
+    const size = Math.min((W - padL - padR) / K, (H - padT - padB) / K);
+    const gap = Math.max(1.5, size * 0.035);
+    const ox = padL + ((W - padL - padR) - size * K) / 2;
+    const oy = padT + ((H - padT - padB) - size * K) / 2;
+
+    let mx = 0;
+    for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) mx = Math.max(mx, M[i][j]);
+    const hiV = Math.max(mx, 1 / K);
+
+    /* 列标签 */
+    for (let j = 0; j < K; j++) {
+      const t = el("text", {
+        x: ox + j * size + size / 2, y: oy - 8, "text-anchor": "middle",
+        class: "mat-lab"
+      });
+      t.textContent = "σ(" + j + ")";
+      svg.appendChild(t);
+    }
+    /* 行标签 */
+    for (let i = 0; i < K; i++) {
+      const t = el("text", {
+        x: ox - 9, y: oy + i * size + size / 2 + 3.4, "text-anchor": "end",
+        class: "mat-lab"
+      });
+      t.textContent = i;
+      svg.appendChild(t);
+    }
+
+    for (let i = 0; i < K; i++) {
+      for (let j = 0; j < K; j++) {
+        const v = M[i][j];
+        const w = hiV > 0 ? v / hiV : 0;
+        const isCore = v > 1.5 / K;
+        const cell = el("rect", {
+          x: ox + j * size + gap / 2, y: oy + i * size + gap / 2,
+          width: size - gap, height: size - gap, rx: Math.max(2, size * 0.05),
+          fill: mix(C.cyan, "#0b1220", 1 - w * 0.92),
+          class: "mat-cell"
+        });
+        if (isCore) {
+          cell.setAttribute("stroke", "rgba(94,231,255,.55)");
+          cell.setAttribute("stroke-width", "1");
+        }
+        if (opt.onCell) opt.onCell(cell, i, j, v);
+        svg.appendChild(cell);
+
+        if (K <= 6 && size > 34) {
+          const t = el("text", {
+            x: ox + j * size + size / 2, y: oy + i * size + size / 2 + 3.4,
+            "text-anchor": "middle",
+            style: `font-family:var(--f-mono);font-size:${Math.min(11, size * 0.22)}px;fill:${w > .55 ? "#04121a" : "rgba(210,222,242,.72)"};font-weight:500;pointer-events:none`
+          });
+          t.textContent = v >= 0.1 ? v.toFixed(2) : v.toFixed(3);
+          svg.appendChild(t);
+        }
+      }
+    }
+    return { ox, oy, size, W, H };
+  }
+
+  function hex2rgb(h) {
+    const s = h.replace("#", "");
+    return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+  }
+  function mix(a, b, t) {
+    const A = hex2rgb(a), B = hex2rgb(b);
+    const r = Math.round(A[0] * (1 - t) + B[0] * t);
+    const g = Math.round(A[1] * (1 - t) + B[1] * t);
+    const bl = Math.round(A[2] * (1 - t) + B[2] * t);
+    return `rgb(${r},${g},${bl})`;
+  }
+
+  /* -------------------------------------------------- matrix (live update) */
+  /**
+   * 只构建一次 DOM，之后用 update(M) 平滑更新颜色与数值。
+   */
+  function matrixLive(svg, K, opt) {
+    opt = opt || {};
+    const vb = (svg.getAttribute("viewBox") || "0 0 420 300").split(/\s+/).map(Number);
+    const W = vb[2], H = vb[3];
+    svg.innerHTML = "";
+
+    const padL = 36, padT = 24, padR = 8, padB = 24;
+    const maxS = opt.maxSize || 112;
+    const size = Math.min((W - padL - padR) / K, (H - padT - padB) / K, maxS);
+    const gap = Math.max(1.5, size * 0.04);
+    const ox = padL + ((W - padL - padR) - size * K) / 2;
+    const oy = padT + ((H - padT - padB) - size * K) / 2;
+
+    const cells = [], labels = [];
+    for (let j = 0; j < K; j++) {
+      const t = el("text", { x: ox + j * size + size / 2, y: oy - 7, "text-anchor": "middle", class: "mat-lab" });
+      t.textContent = "σ(" + j + ")";
+      svg.appendChild(t);
+    }
+    for (let i = 0; i < K; i++) {
+      const t = el("text", { x: ox - 8, y: oy + i * size + size / 2 + 3.2, "text-anchor": "end", class: "mat-lab" });
+      t.textContent = i;
+      svg.appendChild(t);
+    }
+    for (let i = 0; i < K; i++) {
+      for (let j = 0; j < K; j++) {
+        const r = el("rect", {
+          x: ox + j * size + gap / 2, y: oy + i * size + gap / 2,
+          width: size - gap, height: size - gap, rx: Math.max(2, size * 0.06),
+          fill: "#0e1424", class: "mat-cell",
+          style: "transition:fill .55s cubic-bezier(.22,.9,.24,1),stroke .55s"
+        });
+        svg.appendChild(r);
+        let tx = null;
+        if (K <= 6 && size > 26) {
+          tx = el("text", {
+            x: ox + j * size + size / 2, y: oy + i * size + size / 2 + 3.4,
+            "text-anchor": "middle",
+            style: `font-family:var(--f-mono);font-size:${Math.min(10.5, size * 0.2)}px;fill:rgba(210,222,242,.8);font-weight:500;pointer-events:none`
+          });
+          svg.appendChild(tx);
+        }
+        cells.push({ rect: r, text: tx, i, j });
+      }
+    }
+
+    function update(M) {
+      const u = 1 / K;
+      cells.forEach(c => {
+        const v = M[c.i][c.j];
+        /* 语义着色：偏离均匀分布多少，就亮多少。均匀 ⇒ 全暗 = 无信息 */
+        const t = Math.max(0, Math.min(1, (v - u) / (1 - u)));
+        const g = 0.10 + Math.pow(t, 0.55) * 0.90;
+        c.rect.setAttribute("fill", mix("#0e1729", C.cyan, g));
+        const core = v > 1.45 / K;
+        c.rect.setAttribute("stroke", core ? "rgba(94,231,255,.7)" : "rgba(150,168,205,.13)");
+        c.rect.setAttribute("stroke-width", core ? "1.2" : ".6");
+        if (c.text) {
+          c.text.textContent = v >= 0.1 ? v.toFixed(2) : v.toFixed(3);
+          c.text.style.fill = g > .62 ? "#04121a" : "rgba(198,212,238,.78)";
+        }
+      });
+    }
+    return { update };
+  }
+
+  /* ------------------------------------------------------- size & numbers */
+  /** 把 svg 的 viewBox 设成父容器的实际像素尺寸，做到 1:1 渲染（文字不被缩放） */
+  function sizeOf(svg, minW, minH) {
+    const host = svg.parentElement;
+    const w = Math.max(minW || 220, Math.round(host ? host.clientWidth : 600));
+    const h = Math.max(minH || 140, Math.round(host ? host.clientHeight : 360));
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    return { w, h };
+  }
+
+  /** 数字滚动 */
+  function tick(el, v, fmt) {
+    if (!el) return;
+    const prev = parseFloat(el.dataset.v);
+    el.dataset.v = v;
+    const noAnim = reduce || staticMode || document.documentElement.classList.contains("no-anim");
+    if (noAnim || !isFinite(prev) || !isFinite(v) || Math.abs(v - prev) < 1e-12) {
+      el.textContent = fmt(v);
+      return;
+    }
+    const t0 = performance.now(), D = 380;
+    el._tk = (el._tk || 0) + 1;
+    const my = el._tk;
+    function step(t) {
+      if (el._tk !== my) return;
+      const k = Math.min(1, (t - t0) / D);
+      const e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(prev + (v - prev) * e);
+      if (k < 1) requestAnimationFrame(step);
+      else el.textContent = fmt(v);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ------------------------------------------------------------ sparkline */
+  function sparkline(svg, pts, color, opt) {
+    opt = opt || {};
+    const vb = (svg.getAttribute("viewBox") || "0 0 118 54").split(/\s+/).map(Number);
+    const W = vb[2], H = vb[3];
+    svg.innerHTML = "";
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    const y1 = Math.max.apply(null, ys) * 1.05 || 1;
+    const X = v => 4 + ((v - x0) / (x1 - x0 || 1)) * (W - 8);
+    const Y = v => H - 4 - (v / y1) * (H - 10);
+
+    const gid = "sp" + (++uid);
+    const defs = el("defs");
+    const grad = el("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.appendChild(el("stop", { offset: "0%", "stop-color": color, "stop-opacity": .3 }));
+    grad.appendChild(el("stop", { offset: "100%", "stop-color": color, "stop-opacity": 0 }));
+    defs.appendChild(grad); svg.appendChild(defs);
+
+    const d = "M" + pts.map(p => `${X(p[0])},${Y(p[1])}`).join("L");
+    svg.appendChild(el("path", { d: d + `L${X(x1)},${H - 4}L${X(x0)},${H - 4}Z`, fill: `url(#${gid})` }));
+    svg.appendChild(el("path", { d, fill: "none", stroke: color, "stroke-width": 1.4, "stroke-linejoin": "round" }));
+
+    if (opt.cursor !== undefined) {
+      const cx = X(opt.cursor);
+      const cy = Y(opt.cursorY || 0);
+      svg.appendChild(el("line", { x1: cx, x2: cx, y1: 2, y2: H - 4, stroke: "rgba(94,231,255,.4)", "stroke-width": 1, "stroke-dasharray": "2 2" }));
+      svg.appendChild(el("circle", { cx, cy, r: 2.6, fill: color }));
+    }
+  }
+
+  /* -------------------------------------------------------------- field bg */
+  function field() {
+    const cv = $("#field");
+    if (!cv) return;
+    const ctx = cv.getContext("2d");
+    let dpr = Math.min(devicePixelRatio || 1, 2);
+    let W = 0, H = 0, parts = [];
+    let mouse = { x: -9999, y: -9999 };
+
+    function resize() {
+      W = innerWidth; H = innerHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      cv.style.width = W + "px"; cv.style.height = H + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const N = Math.round(Math.min(78, Math.max(30, W / 24)));
+      parts = [];
+      for (let i = 0; i < N; i++) {
+        parts.push({
+          x: Math.random() * W, y: Math.random() * H,
+          vx: 0, vy: 0,
+          r: 0.6 + Math.random() * 1.5,
+          a: 0.12 + Math.random() * 0.4
+        });
+      }
+    }
+    resize();
+    addEventListener("resize", resize, { passive: true });
+    addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; }, { passive: true });
+
+    let t0 = performance.now(), last = 0;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      if (now - last < 26) return;
+      last = now;
+      if (reduce) return;
+      const t = now - t0;
+      ctx.clearRect(0, 0, W, H);
+
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        const ang = Math.sin(p.x * 0.0016 + t * 0.00012) * Math.PI * 1.25
+          + Math.cos(p.y * 0.0019 - t * 0.00010) * Math.PI;
+        p.vx = Math.cos(ang) * 0.16;
+        p.vy = Math.sin(ang) * 0.16;
+        const dx = p.x - mouse.x, dy = p.y - mouse.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 42000 && d2 > 1) {
+          const f = (1 - d2 / 42000) * 0.9;
+          const d = Math.sqrt(d2);
+          p.vx += (dx / d) * f;
+          p.vy += (dy / d) * f;
+        }
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < -20) p.x = W + 20; if (p.x > W + 20) p.x = -20;
+        if (p.y < -20) p.y = H + 20; if (p.y > H + 20) p.y = -20;
+      }
+
+      /* links */
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < parts.length; i++) {
+        for (let j = i + 1; j < parts.length; j++) {
+          const a = parts[i], b = parts[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < 15000) {
+            const o = (1 - d2 / 15000) * 0.10;
+            ctx.strokeStyle = `rgba(94,231,255,${o})`;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
+        }
+      }
+      /* dots */
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        ctx.fillStyle = `rgba(150,180,220,${p.a})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ----------------------------------------------------------- cursor glow */
+  function glow() {
+    const g = $("#glow");
+    if (!g) return;
+    let tx = 0, ty = 0, cx = 0, cy = 0;
+    addEventListener("mousemove", e => {
+      document.body.classList.add("has-pointer");
+      tx = e.clientX; ty = e.clientY;
+    }, { passive: true });
+    (function loop() {
+      cx += (tx - cx) * 0.11;
+      cy += (ty - cy) * 0.11;
+      g.style.transform = `translate(${cx}px,${cy}px) translate(-50%,-50%)`;
+      requestAnimationFrame(loop);
+    })();
+  }
+
+  /* --------------------------------------------------------------- reveal */
+  function reveal() {
+    const items = $$(".rv");
+    if (staticMode || reduce) { items.forEach(i => i.classList.add("in")); return; }
+    const io = new IntersectionObserver(es => {
+      es.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    items.forEach(i => io.observe(i));
+  }
+
+  function markIn(elm) { if (elm) elm.classList.add("in"); }
+
+  return {
+    NS, $, $$, C, el, chart, matrix, matrixLive, sparkline, bindHover, tip,
+    sizeOf, tick,
+    field, glow, reveal, markIn, logTicks, linTicks, mix,
+    staticMode, reduce
+  };
+})();
+</script>
+<script>
+/* ============================================================================
+   认证地平线 · 工作台运行时
+   ----------------------------------------------------------------------------
+   九模块 × 单画布，全局参数 P 在所有模块间共享。
+   所有读数都由 04-kernel 的定理表达式实时算出，没有任何硬编码数字。
+   ========================================================================== */
+(function () {
+  "use strict";
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+  const F = E, G = V, LOG = Math.log;
+
+  /* ==========================================================================
+     1 · 模块表
+     ========================================================================== */
+  const MODS = [
+    { id: "overview", n: "01", short: "总览", name: "总览", thm: "ABSTRACT", kick: "OVERVIEW · 摘要" },
+    { id: "three", n: "02", short: "三问", name: "三种问题", thm: "PROP 9 · 10", kick: "§2 · 三种问题" },
+    { id: "cut", n: "03", short: "切口", name: "受保护切口", thm: "THM 2", kick: "§3 · 受保护切口" },
+    { id: "evidence", n: "04", short: "证据", name: "证据代价", thm: "THM 3", kick: "§4 · 证据代价" },
+    { id: "budget", n: "05", short: "写入", name: "写入预算", thm: "THM 4", kick: "§5 · 写入预算前沿" },
+    { id: "clocks", n: "06", short: "时钟", name: "三条时钟", thm: "THM 5 · COR 6", kick: "§6 · 检测与能力" },
+    { id: "console", n: "07", short: "认证", name: "认证台", thm: "THM 2·3·4·7", kick: "§3–6 · 三张证书" },
+    { id: "limits", n: "08", short: "边界", name: "边界", thm: "PROP 12·13·14", kick: "§7 · 工作台的边界" },
+    { id: "repro", n: "09", short: "复现", name: "复现", thm: "TABLE 1", kick: "§8 · 数值复现" }
+  ];
+  const idxOf = id => Math.max(0, MODS.findIndex(m => m.id === id));
+
+  /* ==========================================================================
+     2 · 全局参数
+     ========================================================================== */
+  const DEF = { K: 3, rho: 0.85, l: 6, L: 64, xi: 0.004, eps: 0.05, delta: 0.05, W: 48, m: 3, nExp: 12 };
+  let P = Object.assign({}, DEF);
+  let D = null;
+
+  const PARAMS = {
+    K: { lab: "状态数 K", min: 2, max: 6, step: 1, fmt: v => "K = " + v },
+    rho: { lab: "保留率 ρ", min: 0.3, max: 0.99, step: 0.005, fmt: v => v.toFixed(3) },
+    l: { lab: "切口长度 ℓ", min: 1, max: 60, step: 1, fmt: v => "ℓ = " + v },
+    nExp: { lab: "数据量 N = 2ⁿ", min: 6, max: 24, step: 1, fmt: v => "2^" + v + " = " + F.fmtInt(Math.pow(2, v)) },
+    L: { lab: "组合长度 L", min: 4, max: 512, step: 4, fmt: v => "L = " + v },
+    eps: { lab: "端点容差 ε", min: 0.01, max: 0.3, step: 0.005, fmt: v => v.toFixed(3) },
+    delta: { lab: "置信水平 δ", min: 0.001, max: 0.2, step: 0.001, fmt: v => v.toFixed(3) },
+    W: { lab: "写入预算 W (bit)", min: 0, max: 256, step: 2, fmt: v => "W = " + v },
+    m: { lab: "冗余位数 m", min: 1, max: 9, step: 2, fmt: v => "m = " + v },
+    xi: { lab: "扰动幅度 ξ", min: 0.0005, max: 0.05, step: 0.0005, fmt: v => v.toFixed(4) }
+  };
+
+  /* 每个模块最相关的参数（inspector 顶部单独列出） */
+  const CTX = {
+    overview: ["K", "rho", "l"],
+    three: ["l", "rho"],
+    cut: ["rho", "l", "K"],
+    evidence: ["l", "delta", "nExp", "K"],
+    budget: ["W", "m", "l"],
+    clocks: ["L", "eps", "nExp"],
+    console: ["delta", "W", "L"],
+    limits: ["xi", "l", "rho"],
+    repro: ["K", "rho", "l"]
+  };
+
+  /* 模块局部状态（不参与全局参数） */
+  const S = { q: 8, flips: [], pin: null };
+  let CUR = "overview";
+
+  /* ==========================================================================
+     3 · 小工具
+     ========================================================================== */
+  function el(tag, cls, html) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+
+  function toast(msg, kind) {
+    const w = $("#toasts");
+    const t = el("div", "toast" + (kind ? " " + kind : ""), `<span class="d"></span>${msg}`);
+    w.appendChild(t);
+    setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 320); }, 2400);
+  }
+
+  function sCls(s) { return s === "ok" ? "emerald" : s === "thin" ? "amber" : "rose"; }
+  function sWord(s) { return s === "ok" ? "成立" : s === "thin" ? "勉强" : "不成立"; }
+  function sMark(s) { return s === "ok" ? "✓" : s === "thin" ? "~" : "✕"; }
+
+  /* ---------- 可认证地平线：三个判据各自的最大 ℓ ---------- */
+  function holds(which, l, p, d) {
+    const r = Math.pow(p.rho, l);
+    if (which === "ev") {
+      const c = F.CK(r, p.K);
+      return isFinite(c) && c > 0 && Math.ceil(LOG(1 / p.delta) / c) <= d.N;
+    }
+    if (which === "bd") {
+      if (d.M <= 0) return false;
+      return F.estarExact(Math.min(d.M, 120), r, p.K) <= p.delta;
+    }
+    if (which === "fl") return r > Math.min(1, 2 * l * p.xi);
+    return false;
+  }
+  function maxL(which, p, d, cap) {
+    cap = cap || 240;
+    if (!holds(which, 1, p, d)) return 0;
+    if (holds(which, cap, p, d)) return cap;
+    let lo = 1, hi = cap;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (holds(which, mid, p, d)) lo = mid; else hi = mid;
+    }
+    return lo;
+  }
+  function horizon(p, d) {
+    const ev = maxL("ev", p, d), bd = maxL("bd", p, d), fl = maxL("fl", p, d);
+    return { ev, bd, fl, all: Math.min(ev, bd, fl) };
+  }
+
+  /* ---------- 卡片与图表容器 ---------- */
+  function chartCard(title, right, foot, minH, noGrow) {
+    const c = el("div", "card col");
+    if (!noGrow) c.style.flex = "1";
+    c.innerHTML =
+      `<div class="card-h"><span class="d"></span>${title}${right ? `<span class="r">${right}</span>` : ""}</div>` +
+      `<div class="card-b" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:8px">` +
+      `<div class="chartwrap" style="min-height:${minH || 150}px"><svg class="chart"></svg></div></div>` +
+      (foot ? `<div class="card-f">${foot}</div>` : "");
+    return { card: c, svg: $(".chart", c) };
+  }
+
+  function readRows(rows) {
+    return rows.map(([k, v, cls]) =>
+      `<div class="read"><span class="read-k">${k}</span><span class="read-v ${cls || ""}">${v}</span></div>`
+    ).join("");
+  }
+
+  /* 对数刻度的统一格式：10 的整数幂写成 1e±n */
+  function powFmt(v) {
+    if (!isFinite(v)) return "∞";
+    if (v === 0) return "0";
+    if (v === 1) return "1";
+    const a = Math.abs(v), e = Math.round(Math.log10(a));
+    if (Math.abs(Math.pow(10, e) - a) < 1e-9 * a) return "1e" + e;
+    return E.fmtNum(v);
+  }
+
+  /* 横向地平线条带：三条判据各自的 ℓ 上限 */
+  function horizonStrip(svg, H, cap, cur) {
+    const w = Math.max(360, Math.round(svg.parentElement.clientWidth || 620));
+    const h = 112;
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.innerHTML = "";
+    const x0 = 58, x1 = w - 58, y0 = 26, dy = 26;
+    const rows = [["证据", H.ev, "#5ee7ff"], ["写入", H.bd, "#ffc76b"], ["地板", H.fl, "#ff6b8b"]];
+    rows.forEach(([k, v, c], i) => {
+      const y = y0 + i * dy;
+      const lab = G.el("text", {
+        x: x0 - 12, y: y + 3.5, "text-anchor": "end",
+        style: "font-family:var(--f-mono);font-size:9.5px;fill:#8b95ad;letter-spacing:.1em"
+      });
+      lab.textContent = k;
+      svg.appendChild(lab);
+      svg.appendChild(G.el("line", { x1: x0, x2: x1, y1: y, y2: y, stroke: "rgba(150,168,205,.12)", "stroke-width": 4, "stroke-linecap": "round" }));
+      const xe = x0 + Math.min(v, cap) / cap * (x1 - x0);
+      svg.appendChild(G.el("line", { x1: x0, x2: Math.max(x0 + 1, xe), y1: y, y2: y, stroke: c, "stroke-width": 4, "stroke-linecap": "round", opacity: .9 }));
+      svg.appendChild(G.el("circle", { cx: Math.max(x0 + 1, xe), cy: y, r: 3.4, fill: c }));
+      const vt = G.el("text", {
+        x: x1 + 12, y: y + 3.5,
+        style: `font-family:var(--f-mono);font-size:10px;fill:${c};font-weight:500`
+      });
+      vt.textContent = v >= cap ? v + "+" : String(v);
+      svg.appendChild(vt);
+    });
+    /* 联合地平线竖线 */
+    const xa = x0 + H.all / cap * (x1 - x0);
+    svg.appendChild(G.el("line", {
+      x1: xa, x2: xa, y1: y0 - 12, y2: y0 + 2 * dy + 10,
+      stroke: "rgba(74,222,128,.6)", "stroke-width": 1, "stroke-dasharray": "3 3"
+    }));
+    const jl = G.el("text", {
+      x: xa, y: y0 - 15, "text-anchor": "middle",
+      style: "font-family:var(--f-mono);font-size:9px;fill:#4ade80;letter-spacing:.06em"
+    });
+    jl.textContent = "ℓ* = " + H.all;
+    svg.appendChild(jl);
+    /* 当前 ℓ */
+    const xc = x0 + Math.min(cur, cap) / cap * (x1 - x0);
+    svg.appendChild(G.el("line", {
+      x1: xc, x2: xc, y1: y0 - 12, y2: y0 + 2 * dy + 8,
+      stroke: "rgba(167,139,250,.55)", "stroke-width": 1, "stroke-dasharray": "2 3"
+    }));
+    const cl = G.el("text", {
+      x: xc, y: y0 + 2 * dy + 21, "text-anchor": "middle",
+      style: "font-family:var(--f-mono);font-size:8.5px;fill:#a78bfa"
+    });
+    cl.textContent = "ℓ = " + cur;
+    svg.appendChild(cl);
+  }
+
+  /* 端点分布：live vs bypass */
+  function endpointBars(svg, r, K) {
+    const w = Math.max(260, Math.round(svg.parentElement.clientWidth || 420));
+    const h = 152;
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.innerHTML = "";
+    const ab = F.alphaBeta(r, K);
+    const padL = 36, padB = 24, padT = 30;
+    const iw = w - padL - 12, ih = h - padT - padB;
+    const yMax = Math.max(ab.a, 1 / K) * 1.16;
+    const Y = v => padT + ih - (v / yMax) * ih;
+    const gw = iw / K, bw = Math.min(26, gw * 0.34);
+
+    /* 网格 */
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const v = yMax * t, y = Y(v);
+      svg.appendChild(G.el("line", { x1: padL, x2: padL + iw, y1: y, y2: y, stroke: "rgba(150,168,205,.09)" }));
+      const lb = G.el("text", {
+        x: padL - 7, y: y + 3.2, "text-anchor": "end",
+        style: "font-family:var(--f-mono);font-size:9px;fill:#434c62"
+      });
+      lb.textContent = v.toFixed(2);
+      svg.appendChild(lb);
+    });
+
+    for (let j = 0; j < K; j++) {
+      const cx = padL + j * gw + gw / 2;
+      const live = j === 0 ? ab.a : ab.b;
+      const byp = 1 / K;
+      svg.appendChild(G.el("rect", {
+        x: cx - bw - 1.5, y: Y(live), width: bw, height: Math.max(1, padT + ih - Y(live)),
+        rx: 2, fill: "rgba(94,231,255,.78)"
+      }));
+      svg.appendChild(G.el("rect", {
+        x: cx + 1.5, y: Y(byp), width: bw, height: Math.max(1, padT + ih - Y(byp)),
+        rx: 2, fill: "rgba(167,139,250,.48)"
+      }));
+      const lb = G.el("text", {
+        x: cx, y: h - 8, "text-anchor": "middle",
+        style: "font-family:var(--f-mono);font-size:9px;fill:#69738c"
+      });
+      lb.textContent = j === 0 ? "s*" : "σ" + j;
+      svg.appendChild(lb);
+    }
+    /* 图例 */
+    const lg = [["live 端点律", "#5ee7ff"], ["bypass（均匀 1/K）", "#a78bfa"]];
+    lg.forEach(([t, c], i) => {
+      const x = padL + i * 132;
+      svg.appendChild(G.el("rect", { x: x, y: 7, width: 8, height: 3, rx: 1.5, fill: c }));
+      const tt = G.el("text", {
+        x: x + 12, y: 10.5,
+        style: "font-family:var(--f-mono);font-size:9px;fill:#8b95ad"
+      });
+      tt.textContent = t;
+      svg.appendChild(tt);
+    });
+    const tv = G.el("text", {
+      x: w - 2, y: 10.5, "text-anchor": "end",
+      style: "font-family:var(--f-mono);font-size:10px;fill:#5ee7ff;letter-spacing:.04em"
+    });
+    tv.textContent = "TV = ρ^ℓ = " + F.fmtNum(r, 4);
+    svg.appendChild(tv);
+  }
+
+  /* 写入预算条：W 个 bit 切成 c 位一组 */
+  function budgetStrip(svg, W, c, M) {
+    const w = Math.max(240, Math.round(svg.parentElement.clientWidth || 420));
+    const h = 54;
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.innerHTML = "";
+    const n = Math.max(1, W);
+    const cw = Math.min(14, (w - 8) / n);
+    const x0 = 0, y = 10;
+    for (let i = 0; i < n; i++) {
+      const g = Math.floor(i / c);
+      const used = g < M;
+      svg.appendChild(G.el("rect", {
+        x: x0 + i * cw + (g % 2 ? 0.5 : 0), y, width: Math.max(1, cw - 1.2), height: 16, rx: 1.6,
+        fill: used ? "rgba(94,231,255,.62)" : "rgba(150,168,205,.10)",
+        stroke: used ? "rgba(94,231,255,.5)" : "rgba(150,168,205,.14)",
+        "stroke-width": .6
+      }));
+      /* 每 c 位画一条分组线 */
+      if ((i + 1) % c === 0 && i < n - 1) {
+        svg.appendChild(G.el("line", {
+          x1: x0 + (i + 1) * cw, x2: x0 + (i + 1) * cw, y1: y - 3, y2: y + 19,
+          stroke: "rgba(255,199,107,.28)", "stroke-width": 1
+        }));
+      }
+    }
+    const t = G.el("text", {
+      x: 0, y: 46,
+      style: "font-family:var(--f-mono);font-size:9px;fill:#69738c;letter-spacing:.03em"
+    });
+    t.textContent = `${W} bit ÷ c=${c} ⇒ M = ${F.fmtInt(M)} 次审计`;
+    svg.appendChild(t);
+  }
+
+  /* ==========================================================================
+     4 · 模块 01 · 总览
+     ========================================================================== */
+  function modOverview(d, p) {
+    const root = el("div", "ov");
+
+    const L = el("div", "ov-l");
+    L.innerHTML =
+      `<div class="ov-k">ABSTRACT · 27 PAGES · 5 THEOREMS · 0 DATASETS</div>` +
+      `<h2 class="ov-h">一个模型<span class="hl">能不能</span><br>被证明<span class="hlv">学到过</span>？</h2>` +
+      `<p class="ov-p">学习所得的计算有两种命运：它可能<b>在</b>模型里，也可能只是<b>被</b>模型复现。` +
+      `这篇论文把这个问题拆成三件必须分开的事——<b>表征是否可得</b>、<b>因果是否被使用</b>、<b>算法是否被忠实实现</b>——` +
+      `并在受保护切口的设定下，给出三者的<em>可认证边界</em>。页面上每一个数字都由定理表达式在浏览器里实时算出，` +
+      `没有数据集，没有预训练权重。</p>` +
+      `<div class="ov-chips">` +
+      `<span class="tag gold">受保护切口</span>` +
+      `<span class="tag cy">证据代价 Θ(ρ⁻²ℓ)</span>` +
+      `<span class="tag ro">写入预算前沿</span>` +
+      `<span class="tag em">检测 ≠ 能力</span>` +
+      `</div>`;
+
+    const st = el("div", "g3");
+    st.style.cssText = "margin-top:18px;gap:8px";
+    [
+      ["证据", d.sEv, "N ≥ N*", F.fmtInt(d.N) + " / " + F.fmtInt(d.ns)],
+      ["写入", d.sBd, "e* ≤ δ", F.fmtNum(d.eB, 3) + " / " + F.fmtNum(p.delta, 3)],
+      ["本地重置", d.sLc, "NL ≥ Q*", F.fmtInt(d.avail) + " / " + F.fmtInt(d.Q)]
+    ].forEach(([k, s, lab, v]) => {
+      const n = el("div", "stat");
+      n.dataset.s = s;
+      n.innerHTML = `<div class="k"><i></i>${k}</div><div class="v">${lab}</div><div class="s">${v}</div>`;
+      st.appendChild(n);
+    });
+    L.appendChild(st);
+    root.appendChild(L);
+
+    const R = el("div", "ov-r");
+    const map = el("div", "ov-map");
+    MODS.forEach(m => {
+      const b = el("button", "ov-node",
+        `<div class="n">${m.n}</div><div class="t">${m.name}</div><div class="e">${m.thm}</div>`);
+      if (m.id === CUR) b.classList.add("on");
+      b.addEventListener("click", () => go(m.id));
+      map.appendChild(b);
+    });
+    R.appendChild(map);
+
+    const kc = el("div", "card col");
+    kc.style.cssText = "flex:1;min-height:0";
+    kc.innerHTML =
+      `<div class="card-h"><span class="d"></span>三个必须记住的不等式<span class="r">随参数实时</span></div>` +
+      `<div class="card-b" style="display:flex;flex-direction:column;gap:6px;justify-content:center">` +
+      `<div class="eq" style="font-size:11px;padding:7px 10px">端点距离 <span class="v">r = ρ<sup>ℓ</sup></span> <span class="c">=</span> ${F.fmtNum(d.r, 4)}</div>` +
+      `<div class="eq" style="font-size:11px;padding:7px 10px">证据代价 <span class="a">N* = Θ(ρ<sup>−2ℓ</sup>)</span> <span class="c">=</span> ${F.fmtInt(d.ns)}</div>` +
+      `<div class="eq" style="font-size:11px;padding:7px 10px">检测 <span class="r">t<sub>det</sub> ~ 2L/log N</span> <span class="c">=</span> ${F.fmtNum(d.tdet, 1)} <span class="c">≪</span> t<sub>acc</sub> <span class="c">=</span> ${F.fmtNum(d.tacc, 1)}</div>` +
+      `</div>`;
+    R.appendChild(kc);
+    root.appendChild(R);
+
+    const hc = el("div", "card col ov-hc");
+    hc.style.cssText = "grid-column:1/-1;min-height:0";
+    hc.innerHTML =
+      `<div class="card-h"><span class="d"></span>可认证地平线<span class="r">三条判据各自能撑到多长的切口</span></div>` +
+      `<div class="card-b" style="display:flex;gap:22px;min-height:0;padding:6px 16px 8px">` +
+      `<div style="flex:1.05;min-width:0;display:flex;align-items:center"><svg id="ovHor" style="width:100%;height:112px;display:block"></svg></div>` +
+      `<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">` +
+      `<div class="mini-h" style="flex:none">ρ<sup>ℓ</sup> 与三条判据的断点</div>` +
+      `<div class="chartwrap" style="flex:1;min-height:0"><svg id="ovDecay" class="chart"></svg></div>` +
+      `</div></div>`;
+    root.appendChild(hc);
+
+    return {
+      root,
+      draw() {
+        const H = horizon(p, d);
+        horizonStrip($("#ovHor", hc), H, 60, p.l);
+
+        const pts = [];
+        for (let l = 1; l <= 60; l++) pts.push([l, Math.pow(p.rho, l)]);
+        const vl = [];
+        if (H.all > 0) vl.push({ x: H.all, color: "rgba(74,222,128,.6)", label: "ℓ* = " + H.all, labelY: 12 });
+        const gd = G.chart($("#ovDecay", hc), {
+          w: 420, h: 230,
+          xDomain: [1, 60], yDomain: [1e-5, 1.2], yLog: true,
+          xTicks: [1, 15, 30, 45, 60],
+          yTicks: [1e-4, 1e-2, 1],
+          yFmt: powFmt,
+          xLabel: "ℓ", yLabel: "ρ^ℓ",
+          series: [{ pts, color: G.C.cyan, width: 2, area: true, areaOpacity: 0.12 }],
+          vlines: vl,
+          marks: [{ x: p.l, y: Math.pow(p.rho, p.l), color: G.C.violet, label: "", dx: 0, dy: 0 }]
+        });
+        G.bindHover($("#ovDecay", hc), gd, [
+          { pts, label: "ρ^ℓ", color: G.C.cyan, fmt: v => F.fmtNum(v, 5) }
+        ], x => "ℓ = " + x);
+      }
+    };
+  }
+
+  /* ==========================================================================
+     5 · 模块 02 · 三种问题（命题 9）
+     ========================================================================== */
+  function modThree(d, p) {
+    const n = 12;
+    const root = el("div", "split");
+
+    const lc = el("div", "card col");
+    lc.innerHTML =
+      `<div class="card-h"><span class="d"></span>命题 9 · 双射，但不可读<span class="r">I(H₀;Y) = I(H₁;Y) = 1 bit</span></div>` +
+      `<div class="card-b" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px">` +
+      `<svg id="rdSvg" style="width:100%;height:96px;display:block;flex:none"></svg>` +
+      `<div class="sl" id="rdSl" style="margin:0;flex:none">` +
+      `<div class="sl-top"><span class="sl-lab">读取窗口 q（每次执行最多查询 q 个坐标）</span><span class="sl-val" id="rdQv">q = ${S.q}</span></div>` +
+      `<input type="range" min="1" max="${n}" step="1" value="${S.q}">` +
+      `</div>` +
+      `<div class="chartwrap" style="min-height:130px"><svg id="rdChart" class="chart"></svg></div>` +
+      `</div>` +
+      `<div class="card-f"><span>H₀ = X</span><span>H₁ = (X₁…X<sub>n−1</sub>, Y)</span><span id="rdHint" style="margin-left:auto"></span></div>`;
+
+    const rs = $("#rdSvg", lc), rc = $("#rdChart", lc), rh = $("#rdHint", lc), rq = $("#rdQv", lc);
+
+    function drawReader() {
+      const w = Math.max(300, Math.round(rs.parentElement.clientWidth || 420));
+      rs.setAttribute("viewBox", `0 0 ${w} 96`);
+      rs.innerHTML = "";
+      const gap = 5, cw = (w - gap * (n - 1)) / n, ch = 38, y0 = 30;
+      for (let i = 0; i < n; i++) {
+        const isY = i === n - 1, inW = i < S.q;
+        rs.appendChild(G.el("rect", {
+          x: i * (cw + gap), y: y0, width: cw, height: ch, rx: 4,
+          fill: inW ? (isY ? "rgba(255,199,107,.30)" : "rgba(94,231,255,.16)") : "rgba(150,168,205,.045)",
+          stroke: inW ? (isY ? "rgba(255,199,107,.85)" : "rgba(94,231,255,.55)") : "rgba(150,168,205,.15)",
+          "stroke-width": inW ? 1.2 : 0.8,
+          style: "transition:fill .3s,stroke .3s"
+        }));
+        const t = G.el("text", {
+          x: i * (cw + gap) + cw / 2, y: y0 + ch / 2 + 4, "text-anchor": "middle",
+          style: `font-family:var(--f-mono);font-size:${Math.min(11, cw * 0.34).toFixed(1)}px;fill:${inW ? (isY ? "#ffc76b" : "#5ee7ff") : "#434c62"}`
+        });
+        t.textContent = isY ? "Y" : "x" + (i + 1);
+        rs.appendChild(t);
+        const lb = G.el("text", {
+          x: i * (cw + gap) + cw / 2, y: y0 - 8, "text-anchor": "middle",
+          style: "font-family:var(--f-mono);font-size:7.5px;fill:#434c62"
+        });
+        lb.textContent = i + 1;
+        rs.appendChild(lb);
+      }
+      const x0 = 0, x1 = S.q * (cw + gap) - gap, yb = y0 + ch + 10;
+      rs.appendChild(G.el("path", {
+        d: `M${x0},${yb - 5}L${x0},${yb}L${x1},${yb}L${x1},${yb - 5}`,
+        fill: "none", stroke: "rgba(94,231,255,.6)", "stroke-width": 1.2
+      }));
+      const wl = G.el("text", {
+        x: (x0 + x1) / 2, y: yb + 12, "text-anchor": "middle",
+        style: "font-family:var(--f-mono);font-size:8.5px;fill:#5ee7ff;letter-spacing:.06em"
+      });
+      wl.textContent = `可读窗口 q = ${S.q}`;
+      rs.appendChild(wl);
+    }
+
+    function drawStep() {
+      const pts = [];
+      for (let k = 1; k <= n; k++) pts.push([k, k < n ? 0.5 : 0]);
+      G.chart(rc, {
+        w: 520, h: 210,
+        xDomain: [0.4, n + 0.6], yDomain: [0, 0.62],
+        xTicks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        yTicks: [0, 0.25, 0.5],
+        xFmt: v => String(v),
+        xLabel: "读取窗口 q", yLabel: "最小预测误差",
+        series: [{ pts, color: G.C.rose, step: true, width: 2.2 }],
+        hlines: [{ y: 0.5, color: "rgba(255,107,139,.42)", label: "1/2 · 完全不可读" }],
+        marks: [{
+          x: S.q, y: S.q < n ? 0.5 : 0, color: G.C.cyan, label: "q = " + S.q,
+          dx: S.q > n - 2 ? -9 : 9, dy: -10,
+          anchor: S.q > n - 2 ? "end" : "start"
+        }]
+      });
+    }
+
+    function refresh() {
+      rq.textContent = "q = " + S.q;
+      rh.innerHTML = S.q < n
+        ? `<span style="color:var(--rose)">误差恒为 1/2</span> —— 少读一个坐标，奇偶性完全未知`
+        : `<span style="color:var(--emerald)">误差 0</span> —— 直接读到 Y`;
+      drawReader();
+      drawStep();
+    }
+
+    $("#rdSl input", lc).addEventListener("input", e => { S.q = +e.target.value; refresh(); });
+
+    const R = el("div", "stack");
+    [
+      {
+        t: "表征可得", tag: "AVAILABILITY", c: "cyan",
+        q: "模型里有没有这个函数的表示？",
+        a: "有。<b>H₀ 与 H₁ 双射，互信息同为 1 bit。</b>表征确实在模型里 —— 但「在」和「取得出来」是两件事。命题 9 用一个 XOR 就把它们分开了。"
+      },
+      {
+        t: "因果使用", tag: "CAUSAL USE", c: "violet",
+        q: "换掉输入，输出会不会跟着变？",
+        a: "要测。受保护切口只允许一次替换 <b>S = a₀ ≠ s</b>，观察端点是否按 <b>ρ<sup>ℓ</sup></b> 改变。这排除了「抄了但没用」。"
+      },
+      {
+        t: "算法忠实", tag: "FIDELITY", c: "amber",
+        q: "整条计算路径是不是同一条？",
+        a: "更难。命题 10：整体忠实<b>蕴含</b>行为忠实（总变差的数据处理不等式），<b>反之不成立</b> —— 端点对而路径错是完全可能的。"
+      }
+    ].forEach(x => {
+      const c = el("div", "card col");
+      c.style.flex = "1";
+      c.innerHTML =
+        `<div class="card-h"><span class="d" style="background:var(--${x.c});box-shadow:0 0 8px var(--${x.c})"></span>${x.t}<span class="r">${x.tag}</span></div>` +
+        `<div class="card-b" style="display:flex;flex-direction:column;gap:6px;justify-content:center">` +
+        `<div style="font-family:var(--f-display);font-size:15px;line-height:1.32;color:var(--ink)">${x.q}</div>` +
+        `<div class="prose" style="font-size:11.5px;line-height:1.64">${x.a}</div>` +
+        `</div>`;
+      R.appendChild(c);
+    });
+
+    root.appendChild(lc);
+    root.appendChild(R);
+    return { root, draw: refresh };
+  }
+
+  /* ==========================================================================
+     6 · 模块 03 · 受保护切口（定理 2）
+     ========================================================================== */
+  function modCut(d, p) {
+    const root = el("div", "split");
+
+    const lc = el("div", "card col");
+    lc.innerHTML =
+      `<div class="card-h"><span class="d"></span>端点核 T<sub>w</sub><span class="r">K = ${p.K} · ℓ = ${p.l}</span></div>` +
+      `<div class="card-b" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:6px 12px 8px">` +
+      `<div class="chartwrap" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center"><svg id="cutMat" style="display:block"></svg></div>` +
+      `<svg id="cutBars" style="width:100%;height:152px;flex:none;display:block"></svg>` +
+      `</div>` +
+      `<div class="card-f"><span>T<sub>w</sub> = ρ<sup>ℓ</sup>P<sub>w</sub> + (1−ρ<sup>ℓ</sup>)U</span><span>上：K×K 核（亮 = 偏离均匀）</span><span>下：端点律 live vs bypass</span></div>`;
+    root.appendChild(lc);
+
+    const R = el("div", "stack");
+
+    const dc = chartCard(
+      "ρ<sup>ℓ</sup> 与扰动地板 2ℓξ",
+      "ℓ = " + p.l,
+      `<span style="color:#5ee7ff">— ρ^ℓ 信号</span><span style="color:#ff6b8b">-- 2ℓξ 地板</span>`,
+      170
+    );
+    R.appendChild(dc.card);
+
+    const rows = [
+      ["当前 K=" + p.K + " ρ=" + p.rho.toFixed(3) + " ℓ=" + Math.min(p.l, 24), F.verifyTheorem2(p.rho, p.K, 1, Math.min(p.l, 24))],
+      ["K=3 ρ=0.900 ℓ=20", F.verifyTheorem2(0.9, 3, 1, 20)],
+      ["K=4 ρ=0.850 ℓ=12", F.verifyTheorem2(0.85, 4, 1, 12)],
+      ["K=2 ρ=0.950 ℓ=20", F.verifyTheorem2(0.95, 2, 1, 20)]
+    ];
+    const vc = el("div", "card col");
+    vc.style.flex = "none";
+    vc.innerHTML =
+      `<div class="card-h"><span class="d"></span>定理 2 · 数值核验<span class="r">直接构造 vs ℓ 次 matmul</span></div>` +
+      `<div class="card-b" style="padding:8px 12px 10px"><table class="tbl"><tbody>` +
+      rows.map(([k, v]) => {
+        const ok = v < 1e-12;
+        return `<tr><td style="font-family:var(--f-mono);font-size:10px;color:var(--dim-2)">${k}</td>` +
+          `<td class="num" style="color:${ok ? "var(--emerald)" : "var(--rose)"};font-size:10.5px">${v.toExponential(2)}</td>` +
+          `<td style="width:38px;text-align:right"><span class="tag ${ok ? "em" : "ro"}" style="font-size:8px;padding:1px 4px">${ok ? "PASS" : "FAIL"}</span></td></tr>`;
+      }).join("") +
+      `</tbody></table></div>`;
+    R.appendChild(vc);
+
+    root.appendChild(R);
+
+    return {
+      root,
+      draw() {
+        const ms = $("#cutMat", lc);
+        const host = ms.parentElement;
+        const side = Math.max(210, Math.min(Math.round(host.clientWidth), Math.round(host.clientHeight), 460));
+        ms.style.width = side + "px";
+        ms.style.height = side + "px";
+        ms.style.margin = "0 auto";
+        ms.setAttribute("viewBox", `0 0 ${side} ${side}`);
+        G.matrix(ms, { K: p.K, matrix: F.kernelWord(p.rho, p.K, 1, p.l) });
+        endpointBars($("#cutBars", lc), d.r, p.K);
+
+        const A = [], B = [];
+        for (let l = 1; l <= 60; l++) {
+          A.push([l, Math.pow(p.rho, l)]);
+          B.push([l, Math.min(1, 2 * l * p.xi)]);
+        }
+        const g2 = G.chart(dc.svg, {
+          w: 500, h: 260,
+          xDomain: [1, 60], yDomain: [1e-4, 1.3], yLog: true,
+          xTicks: [1, 10, 20, 30, 40, 50, 60],
+          yTicks: [1e-4, 1e-3, 1e-2, 1e-1, 1],
+          yFmt: powFmt,
+          xLabel: "切口长度 ℓ", yLabel: "端点距离 / 地板",
+          series: [
+            { pts: A, color: G.C.cyan, width: 2 },
+            { pts: B, color: G.C.rose, width: 1.4, dash: "5 4" }
+          ],
+          marks: [{ x: p.l, y: Math.pow(p.rho, p.l), color: G.C.cyan, label: "ℓ = " + p.l, dx: 8, dy: -9 }]
+        });
+        G.bindHover(dc.svg, g2, [
+          { pts: A, label: "ρ^ℓ 信号", color: G.C.cyan, fmt: v => F.fmtNum(v, 5) },
+          { pts: B, label: "2ℓξ 地板", color: G.C.rose, fmt: v => F.fmtNum(v, 5) }
+        ], x => "ℓ = " + x);
+      }
+    };
+  }
+
+  /* ==========================================================================
+     7 · 模块 04 · 证据代价（定理 3）
+     ========================================================================== */
+  function modEvidence(d, p) {
+    const root = el("div", "split");
+
+    const ec = chartCard(
+      "e*<sub>N</sub> 与定理 3 的两侧界",
+      "δ = " + F.fmtNum(p.delta, 3),
+      `<span style="color:#5ee7ff">— 精确递归 eq.(46)</span><span style="color:#ffc76b">-- ½e^−NC</span><span style="color:#ffc76b;opacity:.6">-- ¼e^−2NC</span><span style="margin-left:auto">N 超过 N* 后 e* 跌破 1e−9，图上不可见</span>`,
+      220
+    );
+    root.appendChild(ec.card);
+
+    const R = el("div", "stack");
+    const nc = chartCard("N* 随切口长度 ℓ 的增长", "Θ(ρ⁻²ℓ)", `<span>固定 δ 与 K，只改 ℓ</span>`, 150);
+    R.appendChild(nc.card);
+
+    const ab = F.alphaBeta(d.r, p.K);
+    const rc = el("div", "card col");
+    rc.style.flex = "none";
+    rc.innerHTML =
+      `<div class="card-h"><span class="d"></span>读数量<span class="r">r = ρ^ℓ</span></div>` +
+      `<div class="card-b" style="padding:6px 14px 10px">` +
+      readRows([
+        ["r = ρ<sup>ℓ</sup>", F.fmtNum(d.r, 5), "cy"],
+        ["α = r + (1−r)/K", F.fmtNum(ab.a, 5)],
+        ["β = (1−r)/K", F.fmtNum(ab.b, 5)],
+        ["C<sub>K</sub>(r) = −log B<sub>K</sub>(r)", F.fmtNum(d.ck, 6), "vi"],
+        ["N* = ⌈log(1/δ)/C⌉", F.fmtInt(d.ns), d.sEv === "ok" ? "em" : d.sEv === "thin" ? "am" : "ro"],
+        ["ρ<sup>−2ℓ</sup>（证据代价尺度）", F.fmtNum(Math.pow(p.rho, -2 * p.l), 4), "am"]
+      ]) +
+      `</div>`;
+    R.appendChild(rc);
+    root.appendChild(R);
+
+    return {
+      root,
+      draw() {
+        const C = d.ck;
+        const xMax = Math.min(1e6, Math.max(30, Math.pow(10, Math.ceil(Math.log10(Math.max(isFinite(d.ns) ? d.ns * 4 : 1e5, 20))))));
+        const hi = [], lo = [], ex = [];
+        if (isFinite(C) && C > 0) {
+          for (let i = 0; i <= 46; i++) {
+            const x = Math.pow(xMax, i / 46);
+            hi.push([x, 0.5 * Math.exp(-x * C)]);
+            lo.push([x, 0.25 * Math.exp(-2 * x * C)]);
+          }
+        }
+        const Ncap = Math.min(240, Math.max(30, Math.round(Math.min(d.N, xMax))));
+        for (let N = 1; N <= Math.min(20, Ncap); N++) ex.push([N, F.estarExact(N, d.r, p.K)]);
+        let NN = 24;
+        while (NN <= Ncap) { ex.push([NN, F.estarExact(NN, d.r, p.K)]); NN = Math.round(NN * 1.28); }
+
+        const vl = [];
+        if (isFinite(d.ns) && d.ns >= 1 && d.ns <= xMax) {
+          vl.push({ x: d.ns, color: G.C.gold, label: "N* = " + F.fmtInt(d.ns), labelY: 12 });
+        }
+        if (d.N <= xMax) vl.push({ x: d.N, color: G.C.cyan, label: "N = " + F.fmtInt(d.N), labelY: 26 });
+
+        const xT = [];
+        for (let v = 1; v <= xMax * 1.001; v *= 10) xT.push(v);
+
+        const geom = G.chart(ec.svg, {
+          w: 620, h: 320,
+          xDomain: [1, xMax], xLog: true, yDomain: [1e-9, 1], yLog: true,
+          xTicks: xT,
+          yTicks: [1e-9, 1e-7, 1e-5, 1e-3, 1e-1, 1],
+          xFmt: powFmt, yFmt: powFmt,
+          xLabel: "独立重置试验数 N", yLabel: "审计误差 e*",
+          series: [
+            { pts: hi, color: G.C.amber, width: 1.2, dash: "5 4", opacity: 0.85 },
+            { pts: lo, color: G.C.amber, width: 1.2, dash: "2 4", opacity: 0.55 },
+            { pts: ex, color: G.C.cyan, width: 2.2 }
+          ],
+          hlines: [{ y: p.delta, color: "rgba(255,107,139,.55)", label: "δ = " + F.fmtNum(p.delta, 3) }],
+          vlines: vl
+        });
+        G.bindHover(ec.svg, geom, [
+          { pts: ex, label: "e* 精确", color: G.C.cyan, fmt: v => F.fmtNum(v, 4) },
+          { pts: hi, label: "½e^−NC", color: G.C.amber, fmt: v => F.fmtNum(v, 4) }
+        ], x => "N = " + F.fmtInt(x));
+
+        const ns = [];
+        for (let l = 1; l <= 60; l++) {
+          const r = Math.pow(p.rho, l), c = F.CK(r, p.K);
+          const v = (isFinite(c) && c > 0) ? Math.ceil(LOG(1 / p.delta) / c) : Infinity;
+          ns.push([l, v > 1e9 ? NaN : v]);
+        }
+        G.chart(nc.svg, {
+          w: 500, h: 260,
+          xDomain: [1, 60], yDomain: [1, 1e9], yLog: true,
+          xTicks: [1, 10, 20, 30, 40, 50, 60],
+          yTicks: [1, 1e3, 1e6, 1e9],
+          yFmt: powFmt,
+          xLabel: "切口长度 ℓ", yLabel: "N*",
+          series: [{ pts: ns, color: G.C.violet, width: 2, area: true, areaOpacity: 0.12 }],
+          marks: isFinite(d.ns) && d.ns <= 1e9
+            ? [{ x: p.l, y: Math.max(1, d.ns), color: G.C.violet, label: "ℓ = " + p.l, dx: 8, dy: -9 }]
+            : []
+        });
+      }
+    };
+  }
+
+  /* ==========================================================================
+     8 · 模块 05 · 写入预算（定理 4）
+     ========================================================================== */
+  function modBudget(d, p) {
+    const root = el("div", "split");
+    const h = (p.m - 1) / 2;
+
+    const lc = el("div", "card col");
+    lc.innerHTML =
+      `<div class="card-h"><span class="d"></span>写入的 m 位 · 点击翻转模拟读取噪声<span class="r">m = 2h+1，c = h+1</span></div>` +
+      `<div class="card-b" style="flex:none;display:flex;flex-direction:column;gap:9px">` +
+      `<div class="bits" id="bitRow"></div>` +
+      `<div class="bits-hint" id="bitHint"></div>` +
+      `<svg id="budStrip" style="width:100%;height:54px;display:block;flex:none"></svg>` +
+      `</div>` +
+      `<div class="card-b" style="flex:1;min-height:0;padding-top:0;display:flex;flex-direction:column">` +
+      `<div class="chartwrap" style="min-height:150px"><svg class="chart" id="budChart"></svg></div></div>` +
+      `<div class="card-f"><span>W &lt; c 时 M = 0 ⇒ e* = 1/2</span><span>任何训练时刻都不可区分</span></div>`;
+
+    function paintBits() {
+      const row = $("#bitRow", lc);
+      row.innerHTML = "";
+      for (let i = 0; i < p.m; i++) {
+        const fl = S.flips.indexOf(i) >= 0;
+        const b = el("button", "bit" + (fl ? " flip" : ""),
+          `<span class="b">${fl ? 0 : 1}</span><span class="i">b${i + 1}</span>`);
+        b.addEventListener("click", () => {
+          const k = S.flips.indexOf(i);
+          if (k >= 0) S.flips.splice(k, 1); else S.flips.push(i);
+          paintBits();
+        });
+        row.appendChild(b);
+      }
+      const r = S.flips.filter(i => i < p.m).length;
+      const ok = r <= h;
+      const hint = $("#bitHint", lc);
+      hint.className = "bits-hint" + (ok ? " ok" : "");
+      hint.innerHTML = `翻转 <b>${r}</b> 位 · 容错 h = ${h} · 多数票 <b>${ok ? "仍正确" : "失效"}</b>`;
+    }
+
+    paintBits();
+
+    const R = el("div", "stack");
+
+    const rc = el("div", "card col");
+    rc.style.flex = "none";
+    rc.innerHTML =
+      `<div class="card-h"><span class="d"></span>定理 4 的四行<span class="r">m = 2h+1</span></div>` +
+      `<div class="card-b" style="padding:6px 14px 10px">` +
+      readRows([
+        ["h = (m−1)/2", String(h)],
+        ["c = h+1（每次审计的写入代价）", String(d.c), "am"],
+        ["M = min(N, ⌊W/c⌋)", F.fmtInt(d.M), "cy"],
+        ["e*<sub>audit</sub> = e*<sub>M</sub>(ρ<sup>ℓ</sup>)", F.fmtNum(d.eB, 4), d.sBd === "ok" ? "em" : d.sBd === "thin" ? "am" : "ro"],
+        ["W 的临界值（W &lt; c 即失效）", String(d.c), "ro"]
+      ]) +
+      `</div>`;
+    R.appendChild(rc);
+
+    const pc = el("div", "card col");
+    pc.style.flex = "1";
+    pc.innerHTML =
+      `<div class="card-h"><span class="d"></span>为什么是「前沿」而不是「阈值」</div>` +
+      `<div class="card-b" style="display:flex;flex-direction:column;justify-content:center"><div class="prose" style="font-size:11.5px">` +
+      `写入预算是<b>审计能做多少次</b>的物理上限：每次审计要读 c = h+1 个 bit，` +
+      `W 个 bit 只够 ⌊W/c⌋ 次。当它小于 1 次时，<span class="hlr">M = 0，审计误差恒为 1/2</span> ——` +
+      `不是「不够准」，而是<b>完全没有信息</b>。` +
+      `<br><br>这正是前沿的形状：在 W ≥ c 之前是一条死线，越过之后误差才按 e<sup>−MC</sup> 指数下降。` +
+      `定理 4 的结论是 <b>e*<sub>audit</sub> = e*<sub>M</sub>(ρ<sup>ℓ</sup>)</b>，把写入与证据两个预算合成一个时钟。` +
+      `</div></div>`;
+    R.appendChild(pc);
+
+    root.appendChild(lc);
+    root.appendChild(R);
+
+    return {
+      root,
+      draw() {
+        budgetStrip($("#budStrip", lc), p.W, d.c, d.M);
+        const Wmax = Math.min(160, Math.max(24, p.W * 2));
+        const ex = [], bd = [];
+        const C = F.CK(d.r, p.K);
+        const stepW = Wmax > 60 ? 4 : 2;
+        for (let w = 0; w <= Wmax; w += stepW) {
+          const M = Math.min(d.N, Math.floor(w / d.c));
+          ex.push([w, M <= 0 ? 0.5 : F.estarExact(Math.min(M, 90), d.r, p.K)]);
+          bd.push([w, M <= 0 ? 0.5 : Math.min(0.5, 0.5 * Math.exp(-M * (isFinite(C) ? C : 0)))]);
+        }
+        const gb = G.chart($("#budChart", lc), {
+          w: 620, h: 280,
+          xDomain: [0, Wmax], yDomain: [1e-6, 0.6], yLog: true,
+          yTicks: [1e-6, 1e-4, 1e-2, 1e-1],
+          yFmt: powFmt,
+          xLabel: "写入预算 W (bit)", yLabel: "审计误差 e*",
+          series: [
+            { pts: bd, color: G.C.amber, width: 1.2, dash: "5 4", opacity: 0.8 },
+            { pts: ex, color: G.C.cyan, width: 2.2, area: true, areaOpacity: 0.1 }
+          ],
+          hlines: [{ y: p.delta, color: "rgba(255,107,139,.5)", label: "δ = " + F.fmtNum(p.delta, 3) }],
+          vlines: [{ x: d.c, color: G.C.rose, label: "W = c = " + d.c, labelY: 12 }],
+          marks: [{ x: p.W, y: Math.max(1e-6, d.eB), color: G.C.cyan, label: "W = " + p.W, dx: 8, dy: -9 }]
+        });
+        G.bindHover($("#budChart", lc), gb, [
+          { pts: ex, label: "e* 精确", color: G.C.cyan, fmt: v => F.fmtNum(v, 5) },
+          { pts: bd, label: "½e^−MC", color: G.C.amber, fmt: v => F.fmtNum(v, 5) }
+        ], x => "W = " + x + " bit");
+      }
+    };
+  }
+
+  /* ==========================================================================
+     9 · 模块 06 · 三条时钟（定理 5 / 推论 6）
+     ========================================================================== */
+  function modClocks(d, p) {
+    const root = el("div", "split");
+    const tgt = 1 - p.eps;
+
+    const cc = chartCard(
+      "A<sub>L</sub>(t) 与 F<sub>L</sub>(t)",
+      "K = " + p.K + " · L = " + p.L,
+      `<span style="color:#5ee7ff">— A_L 端点正确率</span><span style="color:#a78bfa">— F_L 轨迹忠实度</span><span style="color:#f5d67b">-- 1−ε</span>`,
+      240
+    );
+    root.appendChild(cc.card);
+
+    const R = el("div", "stack");
+
+    const kc = el("div", "card col");
+    kc.style.flex = "none";
+    kc.innerHTML =
+      `<div class="card-h"><span class="d"></span>三条时钟<span class="r">同一训练过程，三个时刻</span></div>` +
+      `<div class="card-b" style="padding:6px 14px 10px">` +
+      readRows([
+        ["t<sub>det</sub> ≈ 2L/log N", F.fmtNum(d.tdet, 2), "am"],
+        ["t<sub>acc</sub> = A<sub>L</sub><sup>−1</sup>(1−ε)", F.fmtNum(d.tacc, 2), "cy"],
+        ["t<sub>tr</sub> = F<sub>L</sub><sup>−1</sup>(1−ε)", F.fmtNum(d.ttr, 2), "vi"],
+        ["t<sub>acc</sub> / t<sub>det</sub>", F.fmtNum(d.tacc / Math.max(d.tdet, 1e-9), 1) + "×", "ro"],
+        ["t<sub>acc</sub>/L → 1/(−log h<sub>ε</sub>)", F.fmtNum(F.accSlope(p.K, p.eps), 2)],
+        ["t<sub>tr</sub>/L → (K−1)/(K(−log(1−ε)))", F.fmtNum(F.trSlope(p.K, p.eps), 2)]
+      ]) +
+      `</div>`;
+    R.appendChild(kc);
+
+    const sc = chartCard("三个时刻随 L 的斜率不同", "N = " + F.fmtInt(d.N), `<span>检测线性但系数极小 ⇒ 远早于能力</span>`, 140);
+    R.appendChild(sc.card);
+    root.appendChild(R);
+
+    return {
+      root,
+      draw() {
+        const tMax = Math.max(isFinite(d.tacc) ? d.tacc : 0, isFinite(d.ttr) ? d.ttr : 0, 4) * 1.4;
+        const A = [], Bp = [];
+        for (let i = 0; i <= 150; i++) {
+          const t = 0.4 * Math.pow(tMax / 0.4, i / 150);
+          A.push([t, F.AL(t, p.K, p.L)]);
+          Bp.push([t, F.FL(t, p.K, p.L)]);
+        }
+        const vl = [{ x: d.tdet, color: G.C.amber, label: "t_det", labelY: 12 }];
+        if (isFinite(d.tacc)) vl.push({ x: d.tacc, color: G.C.cyan, label: "t_acc", labelY: 26 });
+        if (isFinite(d.ttr)) vl.push({ x: d.ttr, color: G.C.violet, label: "t_tr", labelY: 40 });
+
+        const xT = [];
+        for (let v = 1; v <= tMax; v *= 10) xT.push(v);
+
+        const g1 = G.chart(cc.svg, {
+          w: 620, h: 340,
+          xDomain: [0.4, tMax], xLog: true, yDomain: [0, 1.04],
+          xTicks: xT, xFmt: powFmt,
+          xLabel: "归一化梯度流时间 t", yLabel: "概率",
+          series: [
+            { pts: A, color: G.C.cyan, width: 2.2 },
+            { pts: Bp, color: G.C.violet, width: 2.2 }
+          ],
+          hlines: [{ y: tgt, color: "rgba(245,214,123,.55)", label: "1−ε = " + tgt.toFixed(2) }],
+          vlines: vl
+        });
+        G.bindHover(cc.svg, g1, [
+          { pts: A, label: "A_L 端点", color: G.C.cyan, fmt: v => v.toFixed(4) },
+          { pts: Bp, label: "F_L 轨迹", color: G.C.violet, fmt: v => v.toFixed(4) }
+        ], x => "t = " + F.fmtNum(x, 1));
+
+        const ts = [], ta = [], tt = [];
+        for (let L = 8; L <= 512; L += 8) {
+          ts.push([L, F.tDet(L, d.N)]);
+          ta.push([L, F.tAcc(p.K, L, p.eps)]);
+          tt.push([L, F.tTr(p.K, L, p.eps)]);
+        }
+        const yTop = Math.max(F.tAcc(p.K, 512, p.eps), F.tTr(p.K, 512, p.eps), 10) * 1.6;
+        G.chart(sc.svg, {
+          w: 500, h: 240,
+          xDomain: [8, 512], yDomain: [0.8, yTop], yLog: true,
+          xTicks: [8, 128, 256, 384, 512],
+          yTicks: [1, 10, 100, 1000, 10000].filter(v => v <= yTop),
+          yFmt: powFmt,
+          xLabel: "组合长度 L", yLabel: "时刻 t（对数）",
+          series: [
+            { pts: ts, color: G.C.amber, width: 1.8 },
+            { pts: ta, color: G.C.cyan, width: 1.8 },
+            { pts: tt, color: G.C.violet, width: 1.8, dash: "4 3" }
+          ],
+          vlines: [{ x: p.L, color: "rgba(150,168,205,.4)", label: "L = " + p.L, labelY: 12 }]
+        });
+      }
+    };
+  }
+
+  /* ==========================================================================
+     10 · 模块 07 · 认证台
+     ========================================================================== */
+  function certText(d, p) {
+    const H = horizon(p, d);
+    const ev = d.sEv === "ok" ? "成立" : d.sEv === "thin" ? "勉强" : "不成立";
+    const bd = d.sBd === "ok" ? "成立" : d.sBd === "thin" ? "勉强" : "不成立";
+    const lc = d.sLc === "ok" ? "成立" : d.sLc === "thin" ? "勉强" : "不成立";
+    const bind = H.all === H.ev ? "证据" : H.all === H.bd ? "写入" : "扰动地板";
+    return [
+      "认证地平线 · 局部证书",
+      "─────────────────────────────",
+      `接口      受保护切口（一次替换 S = a0 ≠ s）`,
+      `参数      K=${p.K}  ρ=${p.rho.toFixed(3)}  ℓ=${p.l}  L=${p.L}`,
+      `          N=2^${p.nExp}=${F.fmtInt(d.N)}  δ=${p.delta}  ε=${p.eps}`,
+      `          W=${p.W} bit  m=${p.m}  ξ=${p.xi}`,
+      "",
+      `端点距离  r = ρ^ℓ = ${F.fmtNum(d.r, 6)}`,
+      `α = ${F.fmtNum(F.alphaBeta(d.r, p.K).a, 6)}   β = ${F.fmtNum(F.alphaBeta(d.r, p.K).b, 6)}`,
+      `C_K(r) = ${F.fmtNum(d.ck, 6)}`,
+      "",
+      `[1] 证据      N* = ${F.fmtInt(d.ns)}    N = ${F.fmtInt(d.N)}    ${ev}`,
+      `[2] 写入      M = ${F.fmtInt(d.M)}    e* = ${F.fmtNum(d.eB, 6)} ≤ δ    ${bd}`,
+      `[3] 本地重置  Q* = ${F.fmtInt(d.Q)}   NL = ${F.fmtInt(d.avail)}    ${lc}`,
+      "",
+      `可认证地平线  ℓ_ev=${H.ev}  ℓ_bd=${H.bd}  ℓ_fl=${H.fl}  ⇒  ℓ* = ${H.all}`,
+      `瓶颈        ${bind}`,
+      `时钟      t_det=${F.fmtNum(d.tdet, 2)}  t_acc=${F.fmtNum(d.tacc, 2)}  t_tr=${F.fmtNum(d.ttr, 2)}`,
+      "",
+      "本证书只针对上述接口与参数。它不证明无害、",
+      "不证明合规、不覆盖受测状态模型之外的情形。"
+    ].join("\n");
+  }
+
+  function verdictHTML(d, p) {
+    const H = horizon(p, d);
+    const col = s => `color:var(--${sCls(s)})`;
+    const parts = [];
+    parts.push(`当前参数下，受保护切口的端点对比恰为 <b>r = ρ<sup>ℓ</sup> = ${F.fmtNum(d.r, 4)}</b>。`);
+    parts.push(`证据路线<span style="${col(d.sEv)}">${sWord(d.sEv)}</span>（需 N* = ${F.fmtInt(d.ns)}，现有 N = ${F.fmtInt(d.N)}）`);
+    parts.push(`写入路线<span style="${col(d.sBd)}">${sWord(d.sBd)}</span>（M = ${F.fmtInt(d.M)} 次审计，e* = ${F.fmtNum(d.eB, 4)}）`);
+    parts.push(`本地重置<span style="${col(d.sLc)}">${sWord(d.sLc)}</span>（NL = ${F.fmtInt(d.avail)} 对 Q* = ${F.fmtInt(d.Q)}）`);
+    const bind = H.all === H.ev ? "证据" : H.all === H.bd ? "写入" : "扰动地板";
+    return parts.join("；") + `。三者同时成立的切口上限为 <b>ℓ* = ${H.all}</b>，` +
+      `此处瓶颈是<b>${bind}</b>。`;
+  }
+
+  function modConsole(d, p) {
+    const root = el("div", "stack");
+    const H = horizon(p, d);
+
+    const g = el("div", "g3");
+    g.style.cssText = "gap:12px;flex:none";
+
+    const cards = [
+      {
+        s: d.sEv, t: "证据证书", thm: "THM 3",
+        sub: `在受保护切口上做 N* = ${F.fmtInt(d.ns)} 次独立重置，才能把两类误差同时压到 δ = ${F.fmtNum(p.delta, 3)} 以下。当前可用 N = ${F.fmtInt(d.N)}。`,
+        kv: [["N*", F.fmtInt(d.ns)], ["N", F.fmtInt(d.N)], ["C_K(r)", F.fmtNum(d.ck, 5)], ["ℓ 上限", String(H.ev)]]
+      },
+      {
+        s: d.sBd, t: "写入证书", thm: "THM 4",
+        sub: `W = ${p.W} bit 只够 M = ${F.fmtInt(d.M)} 次审计（每次 c = ${d.c} bit）。审计误差 e* = ${F.fmtNum(d.eB, 4)}，阈值 δ = ${F.fmtNum(p.delta, 3)}。`,
+        kv: [["M", F.fmtInt(d.M)], ["c", String(d.c)], ["e*", F.fmtNum(d.eB, 4)], ["ℓ 上限", String(H.bd)]]
+      },
+      {
+        s: d.sLc, t: "重置证书", thm: "THM 7",
+        sub: `每次局部重置以概率 η = ${F.fmtNum(d.eta, 5)} 命中。要覆盖 D = K² = ${d.D} 行、置信 1−δ，需要 Q* = ${F.fmtInt(d.Q)} 次查询；可用 NL = ${F.fmtInt(d.avail)}。`,
+        kv: [["Q*", F.fmtInt(d.Q)], ["NL", F.fmtInt(d.avail)], ["η", F.fmtNum(d.eta, 5)], ["ℓ 上限", String(H.fl)]]
+      }
+    ];
+
+    cards.forEach(c => {
+      const n = el("div", "vd");
+      n.dataset.s = c.s;
+      n.innerHTML =
+        `<div class="vd-top"><div class="vd-ic">${sMark(c.s)}</div><div class="vd-t">${sWord(c.s)}</div>` +
+        `<span class="tag" style="font-size:8px">${c.thm}</span></div>` +
+        `<div class="vd-s">${c.sub}</div>` +
+        `<div class="vd-kv">` +
+        c.kv.map(([k, v]) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join("") +
+        `</div>`;
+      g.appendChild(n);
+    });
+    root.appendChild(g);
+
+    const bc = el("div", "card col");
+    bc.style.flex = "1";
+    bc.innerHTML =
+      `<div class="card-h"><span class="d"></span>判词<span class="r">由上面三条判据合成</span></div>` +
+      `<div class="card-b" style="display:flex;flex-direction:column;gap:11px">` +
+      `<div class="prose" style="font-size:12.5px;line-height:1.75;flex:none">${verdictHTML(d, p)}</div>` +
+      `<pre class="cert" id="certTxt" style="flex:1;min-height:110px;max-height:none"></pre>` +
+      `</div>` +
+      `<div class="card-f"><button class="tbtn" id="btnCopyCert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>复制证书</button><span>可直接粘进论文附录</span></div>`;
+
+    const pre = $("#certTxt", bc);
+    pre.textContent = certText(d, p);
+    $("#btnCopyCert", bc).addEventListener("click", () => {
+      const txt = certText(d, p);
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast("证书已复制", "ok"), () => toast("复制失败，请手动选择", "warn"));
+      else toast("此环境不支持剪贴板", "warn");
+    });
+    root.appendChild(bc);
+    return { root };
+  }
+
+  /* ==========================================================================
+     11 · 模块 08 · 边界
+     ========================================================================== */
+  function modLimits(d, p) {
+    const root = el("div", "lim");
+    const lc = F.floorCrossL(p.rho, p.xi, 200);
+    const floor = F.floorBound(p.l, p.xi);
+
+    const cell = (lc2, tag, title, body, foot) => {
+      const n = el("div", "lim-c");
+      n.style.setProperty("--lc", `var(--${lc2})`);
+      n.innerHTML =
+        `<div class="lim-h"><span class="t">${tag}</span></div>` +
+        `<div class="lim-t">${title}</div>` +
+        `<div class="lim-b">${body}</div>` +
+        `<div class="lim-f">` +
+        foot.map(([k, v, c]) => `<span><i>${k}</i><b class="${c || ""}">${v}</b></span>`).join("") +
+        `</div>`;
+      return n;
+    };
+
+    root.appendChild(cell("rose", "PROP 12 · 扰动地板", "信号掉到 2ℓξ 以下，就不再是信号",
+      `若每个真实核与理想核的行间总变差 ≤ ξ，则实际对比与理想对比之差满足 <b>|r̃ − ρ<sup>ℓ</sup>| ≤ 2ℓξ</b>。` +
+      `当前 2ℓξ = <b>${F.fmtNum(floor, 4)}</b>，而 ρ<sup>ℓ</sup> = <b>${F.fmtNum(d.r, 4)}</b>` +
+      (lc ? `，临界 ℓ* ≈ <b>${lc.toFixed(1)}</b>。` : `。`) +
+      ` 这是一条<b>稳定性界</b>，不是任意误设下似然比的界。`,
+      [["2ℓξ", F.fmtNum(floor, 4), "ro"], ["ρ^ℓ", F.fmtNum(d.r, 4), "cy"], ["ℓ*", lc ? lc.toFixed(1) : "—", "am"]]));
+
+    root.appendChild(cell("amber", "PROP 13 · 常数转移坍缩", "正确、确定、且「用了状态」，仍然不可区分",
+      `取 <b>f(s) = s*</b> 为常数转移：live 态 a₀ 与 bypass 态 s 都一步落到 s*，端点律完全相同。` +
+      `于是<b>局部完全正确</b>与<b>语法上使用了状态参数</b>都不足以让端点可分辨 —— 定理 2 的<b>单射性</b>正好排除这种坍缩。`,
+      [["端点差", "0", "ro"], ["单射性", "成立", "em"], ["反例", "常数转移", ""]]));
+
+    root.appendChild(cell("violet", "PROP 14 · 隐藏计数器", "有限长度的审计，不能认证无界行为",
+      `存在两个有限状态实现：在所有长度 ≤ L<sub>max</sub> 的执行上<b>记录完全相同</b>，` +
+      `但在第 L<sub>max</sub>+1 步输出不同符号。任何该协议下的审计都区分不了它们。` +
+      `这正是定理 7 要求<b>完整状态、时间齐次 Markov 承诺</b>的原因。`,
+      [["审计长度", "任意有限", ""], ["反例", "存在", "ro"], ["要求", "时间齐次", "am"]]));
+
+    const q = el("div", "quote");
+    q.style.cssText = "display:flex;flex-direction:column;justify-content:center";
+    q.innerHTML =
+      `<div class="quote-q">「一份关于内部前兆的报告，应当说明它度量的是<b>信息可得性</b>、<b>因果影响</b>，还是<b>组合正确性</b>。` +
+      `提高审计的灵敏度可以让第一种可检测影响提前出现，却不会让学习者的能力前进一步。」</div>` +
+      `<div class="quote-a">§7 · Scope, failure modes and implications</div>`;
+    root.appendChild(q);
+
+    return { root };
+  }
+
+  /* ==========================================================================
+     12 · 模块 09 · 复现
+     ========================================================================== */
+  function modRepro(d, p) {
+    const root = el("div", "split");
+
+    const res2 = F.verifyTheorem2(p.rho, p.K, 1, Math.min(p.l, 24));
+    const Nn = Math.min(Math.max(1, Math.round(d.N)), 40);
+    const bd = F.estarBounds(Nn, d.r, p.K);
+    const exv = F.estarExact(Nn, d.r, p.K);
+    const aErr = Math.abs(F.AL(d.tacc, p.K, p.L) - (1 - p.eps));
+    const fErr = Math.abs(F.FL(d.ttr, p.K, p.L) - (1 - p.eps));
+    const cliff = F.budgetM(d.N, d.c - 1, p.m) === 0;
+    const eta = F.etaForEps(p.eps, p.L);
+    const comp = 1 - Math.pow(1 - eta, p.L);
+    const compOk = comp <= p.L * eta + 1e-15;
+    const slope = Math.abs(F.tAcc(p.K, 1024, p.eps) / 1024 - F.accSlope(p.K, p.eps));
+
+    const checks = [
+      ["定理 2", "端点距离恒等式", "ρ<sup>ℓ</sup>P<sub>w</sub>+(1−ρ<sup>ℓ</sup>)U 与 ℓ 次 matmul 的最大偏差", res2.toExponential(2), res2 < 1e-12],
+      ["定理 3", "双侧界夹住精确值", `N=${Nn}：¼e^−2NC ≤ e* ≤ ½e^−NC`, `${bd.lo.toExponential(1)} ≤ ${exv.toExponential(1)} ≤ ${bd.hi.toExponential(1)}`, bd.lo <= exv && exv <= bd.hi],
+      ["定理 3", "小 r 展开 C<sub>K</sub>(r) ≈ Kr²/4", "r = 0.02 处相对误差", (() => { const r0 = 0.02, a1 = F.CK(r0, p.K), a2 = F.CKsmall(r0, p.K); return Math.abs(a1 - a2) / a1; })().toFixed(4), (() => { const r0 = 0.02, a1 = F.CK(r0, p.K), a2 = F.CKsmall(r0, p.K); return Math.abs(a1 - a2) / a1 < 0.06; })()],
+      ["定理 5", "端点达标时刻", "A<sub>L</sub>(t<sub>acc</sub>) = 1−ε", aErr.toExponential(1), aErr < 1e-9],
+      ["定理 5", "轨迹达标时刻", "F<sub>L</sub>(t<sub>tr</sub>) = 1−ε", fErr.toExponential(1), fErr < 1e-9],
+      ["定理 4", "写入悬崖", `W = c−1 = ${d.c - 1} ⇒ M = 0`, cliff ? "M = 0" : "M ≠ 0", cliff],
+      ["定理 7", "组合界", "1−(1−η)<sup>L</sup> ≤ Lη", `${comp.toExponential(1)} ≤ ${(p.L * eta).toExponential(1)}`, compOk],
+      ["推论 6", "斜率收敛", "L=1024 处 |t<sub>acc</sub>/L − 常数|", slope.toExponential(1), slope < 1e-2]
+    ];
+
+    const pass = checks.filter(c => c[4]).length;
+
+    const tc = el("div", "card col");
+    tc.innerHTML =
+      `<div class="card-h"><span class="d"></span>Table 1 · 数值复现<span class="r">${pass} / ${checks.length} 通过</span></div>` +
+      `<div class="card-b" style="padding:10px 12px;display:flex;flex-direction:column"><table class="tbl tbl-fill">` +
+      `<thead><tr><th>定理</th><th>检查</th><th style="text-align:right">结果</th><th style="width:44px;text-align:right">判定</th></tr></thead><tbody>` +
+      checks.map(c =>
+        `<tr><td style="font-family:var(--f-mono);font-size:9px;color:var(--dim-2);white-space:nowrap">${c[0]}</td>` +
+        `<td><span style="color:var(--ink-2)">${c[1]}</span><br><span style="font-family:var(--f-mono);font-size:9px;color:var(--faint)">${c[2]}</span></td>` +
+        `<td class="num" style="font-size:10px;color:${c[4] ? "var(--emerald)" : "var(--rose)"}">${c[3]}</td>` +
+        `<td style="text-align:right"><span class="tag ${c[4] ? "em" : "ro"}" style="font-size:8px;padding:1px 4px">${c[4] ? "PASS" : "FAIL"}</span></td></tr>`
+      ).join("") +
+      `</tbody></table></div>` +
+      `<div class="card-f"><span>全部检查在浏览器内实时重算</span><span>没有预存数字</span></div>`;
+    root.appendChild(tc);
+
+    const R = el("div", "stack");
+
+    const cc = el("div", "card col");
+    cc.style.flex = "none";
+    cc.innerHTML =
+      `<div class="card-h"><span class="d"></span>与「涌现检测器」的对照</div>` +
+      `<div class="card-b" style="display:flex;flex-direction:column">` +
+      `<div class="cmp-row"><div class="k">问的问题</div><div class="v">v1 只问<b>表征是否可得</b>；这里把它拆成<b>三问</b>，并说明三者何时分岔</div></div>` +
+      `<div class="cmp-row"><div class="k">观测接口</div><div class="v">v1 被动看曲线；这里用<b>受保护切口</b>做一次干预替换，把不可识别问题变成有限统计实验</div></div>` +
+      `<div class="cmp-row"><div class="k">读数</div><div class="v">v1 给一个 onset 分数；这里给<b>带误差保证的区间</b>与<b>可认证地平线</b></div></div>` +
+      `<div class="cmp-row"><div class="k">代价</div><div class="v bad">v1 不说代价；这里说清楚：证据 <b>Θ(ρ<sup>−2ℓ</sup>)</b>，写入 <b>c</b> bit/次，扰动地板 <b>2ℓξ</b></div></div>` +
+      `<div class="cmp-row"><div class="k">不声称</div><div class="v">不证明无害、不证明合规、不覆盖受测状态模型之外的情形</div></div>` +
+      `</div>`;
+    R.appendChild(cc);
+
+    /* 把「怎么自己验一遍」写成可执行的三步，比再放一张图有用 */
+    const gc = el("div", "card col");
+    gc.style.flex = "1";
+    gc.innerHTML =
+      `<div class="card-h"><span class="d"></span>自己验一遍<span class="r">三步</span></div>` +
+      `<div class="card-b" style="display:flex;flex-direction:column;gap:9px;justify-content:center">` +
+      [
+        ["01", "把切口拉长", "在 <b>03 受保护切口</b>里把 ℓ 从 6 拖到 20：r 掉到 1e−2 以下，N* 涨到 1e10 量级。同一套公式，代价自己跳出来。"],
+        ["02", "把预算掐断", "在 <b>05 写入预算</b>里把 W 调到 c−1：审计次数 M 归零。定理 4 的悬崖是<b>硬的</b>，不是渐近的。"],
+        ["03", "把假设踩破", "在 <b>08 边界</b>里把 ξ 调到 0.05：2ℓξ 吞掉 ρ<sup>ℓ</sup>，命题 12 的地板显形 —— 此时任何读数都不该被相信。"]
+      ].map(([n, t, b]) =>
+        `<div class="step"><div class="sn">${n}</div><div><div class="st">${t}</div><div class="sb">${b}</div></div></div>`
+      ).join("") +
+      `</div>`;
+    R.appendChild(gc);
+
+    const xc = el("div", "card col");
+    xc.style.flex = "none";
+    xc.innerHTML =
+      `<div class="card-h"><span class="d"></span>导出</div>` +
+      `<div class="card-b" style="display:flex;flex-wrap:wrap;gap:6px">` +
+      `<button class="tbtn" data-ex="csv">主曲线 CSV</button>` +
+      `<button class="tbtn" data-ex="json">参数 + 派生量 JSON</button>` +
+      `<button class="tbtn" data-ex="cert">证书文本</button>` +
+      `</div>`;
+    $$("[data-ex]", xc).forEach(b => b.addEventListener("click", () => doExport(b.dataset.ex)));
+    R.appendChild(xc);
+
+    root.appendChild(R);
+    return { root };
+  }
+
+  /* ==========================================================================
+     13 · 注册
+     ========================================================================== */
+  const BUILD = {
+    overview: modOverview, three: modThree, cut: modCut, evidence: modEvidence,
+    budget: modBudget, clocks: modClocks, console: modConsole,
+    limits: modLimits, repro: modRepro
+  };
+
+  /* ==========================================================================
+     14 · 渲染
+     ========================================================================== */
+  function metaTags(id, d, p) {
+    const H = horizon(p, d);
+    const T = {
+      overview: [["gold", "27 页 · 5 定理 · 4 命题"], ["cy", "零数据集"], ["em", "全部实时计算"]],
+      three: [["gold", "命题 9 · 10"], ["cy", "I = 1 bit"], ["ro", "误差恰 1/2"]],
+      cut: [["gold", "定理 2"], ["cy", "r = " + F.fmtNum(d.r, 4)], ["vi", "K = " + p.K]],
+      evidence: [["gold", "定理 3"], ["am", "N* = " + F.fmtInt(d.ns)], ["cy", "Θ(ρ⁻²ℓ) = " + F.fmtNum(Math.pow(p.rho, -2 * p.l), 3)]],
+      budget: [["gold", "定理 4"], ["cy", "M = " + F.fmtInt(d.M)], ["ro", "c = " + d.c]],
+      clocks: [["gold", "定理 5 · 推论 6"], ["am", "t_det = " + F.fmtNum(d.tdet, 1)], ["cy", "t_acc = " + F.fmtNum(d.tacc, 1)]],
+      console: [["gold", "定理 2·3·4·7"], ["cy", "ℓ* = " + H.all], ["am", "三张证书"]],
+      limits: [["gold", "命题 12·13·14"], ["ro", "地板 2ℓξ = " + F.fmtNum(F.floorBound(p.l, p.xi), 3)]],
+      repro: [["gold", "Table 1"], ["em", "实时重算"]]
+    };
+    return (T[id] || []).map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join("");
+  }
+
+  let navTok = 0, pending = false;
+
+  function paintHeader() {
+    const m = MODS[idxOf(CUR)];
+    $("#crumbN").textContent = m.n;
+    $("#crumbT").textContent = m.name;
+    $("#cKick").textContent = m.kick;
+    $("#cTitle").textContent = m.name;
+    $("#cMeta").innerHTML = metaTags(CUR, D, P);
+  }
+
+  function renderCanvas() {
+    const body = $("#cBody");
+    body.innerHTML = "";
+    const built = BUILD[CUR](D, P);
+    const root = built.root || built;
+    body.appendChild(root);
+    if (built.draw) built.draw();
+  }
+
+  function paintRail() {
+    $$(".rail-item").forEach(n => n.classList.toggle("on", n.dataset.id === CUR));
+  }
+
+  function go(id, opt) {
+    if (!BUILD[id]) return;
+    const same = id === CUR;
+    CUR = id;
+    paintRail();
+    const item = $('.rail-item[data-id="' + id + '"]');
+    if (item) { item.classList.remove("flash"); void item.offsetWidth; item.classList.add("flash"); }
+    paintHeader();
+    renderInspector();
+    writeHash();
+    if (same && opt && opt.instant) { renderCanvas(); return; }
+    const body = $("#cBody");
+    if (G.staticMode || G.reduce) { renderCanvas(); return; }
+    const tok = ++navTok;
+    body.classList.add("swap-out");
+    setTimeout(() => {
+      if (tok !== navTok) return;
+      renderCanvas();
+      body.classList.remove("swap-out");
+    }, 120);
+  }
+
+  /* ---------- rail ---------- */
+  function buildRail() {
+    const r = $("#rail");
+    r.innerHTML = "";
+    const head = el("div", "rail-head", "模块 · MODULES");
+    r.appendChild(head);
+    MODS.forEach(m => {
+      const n = el("div", "rail-item");
+      n.dataset.id = m.id;
+      n.dataset.short = m.short;
+      n.innerHTML =
+        `<div class="rail-n">${m.n}</div>` +
+        `<div class="rail-body"><div class="rail-name">${m.name}</div><div class="rail-thm">${m.thm}</div></div>`;
+      n.addEventListener("click", () => go(m.id));
+      r.appendChild(n);
+    });
+    const foot = el("div", "rail-foot");
+    foot.innerHTML =
+      `<div class="rail-kv"><span>版本</span><b>v3 · workbench</b></div>` +
+      `<div class="rail-kv"><span>内核</span><b>定理表达式</b></div>`;
+    r.appendChild(foot);
+  }
+
+  /* ---------- dock ---------- */
+  const DOCK = [
+    ["ρ^ℓ", "r", "cy", v => F.fmtNum(v, 4), "cut"],
+    ["N", "N", "", v => F.fmtInt(v), "evidence"],
+    ["N*", "ns", "", v => F.fmtInt(v), "evidence"],
+    ["M", "M", "", v => F.fmtInt(v), "budget"],
+    ["e*", "eB", "", v => F.fmtNum(v, 4), "budget"],
+    ["t_det", "tdet", "", v => F.fmtNum(v, 1), "clocks"],
+    ["t_acc", "tacc", "cy", v => F.fmtNum(v, 1), "clocks"],
+    ["t_tr", "ttr", "vi", v => F.fmtNum(v, 1), "clocks"],
+    ["ℓ*", "hor", "am", v => String(v), "console"]
+  ];
+
+  function buildDock() {
+    const dk = $("#dock");
+    dk.innerHTML = "";
+    DOCK.forEach(([k, id, cls, fmt, link]) => {
+      const c = el("div", "dock-cell");
+      c.innerHTML = `<div class="dock-k">${k}</div><div class="dock-v ${cls}" id="dk-${id}">—</div>`;
+      c.style.cursor = "pointer";
+      c.title = "跳到 " + (MODS.find(m => m.id === link) || {}).name;
+      c.addEventListener("click", () => go(link));
+      dk.appendChild(c);
+    });
+    dk.appendChild(el("div", "dock-sp"));
+    const st = el("div", "dock-status");
+    st.innerHTML =
+      `<div class="dock-dots"><i class="dock-dot" id="dd-ev"></i><i class="dock-dot" id="dd-bd"></i><i class="dock-dot" id="dd-lc"></i></div>` +
+      `<div class="dock-stxt" id="dockTxt">证据 · 写入 · 重置</div>`;
+    dk.appendChild(st);
+  }
+
+  function updateDock() {
+    DOCK.forEach(([k, id, cls, fmt]) => {
+      const node = $("#dk-" + id);
+      if (!node) return;
+      let v = D[id];
+      if (id === "hor") v = horizon(P, D).all;
+      G.tick(node, v, fmt);
+    });
+    $("#dd-ev").className = "dock-dot " + D.sEv;
+    $("#dd-bd").className = "dock-dot " + D.sBd;
+    $("#dd-lc").className = "dock-dot " + D.sLc;
+    const t = $("#dockTxt");
+    if (S.pin) {
+      const dr = (D.r - S.pin.r) / (S.pin.r || 1);
+      t.textContent = `相对钉住  r ${dr >= 0 ? "+" : ""}${(dr * 100).toFixed(1)}%`;
+    } else {
+      t.textContent = "证据 · 写入 · 重置";
+    }
+  }
+
+  /* ---------- inspector ---------- */
+  function sliderNode(k) {
+    const df = PARAMS[k];
+    const w = el("div", "sl");
+    w.dataset.key = k;
+    w.innerHTML =
+      `<div class="sl-top"><span class="sl-lab">${df.lab}</span><span class="sl-val"></span></div>` +
+      `<input type="range" min="${df.min}" max="${df.max}" step="${df.step}" value="${P[k]}">`;
+    const inp = $("input", w), out = $(".sl-val", w);
+    const paint = () => {
+      const v = +inp.value;
+      inp.style.setProperty("--p", ((v - inp.min) / (inp.max - inp.min) * 100).toFixed(2) + "%");
+      out.textContent = df.fmt(v);
+    };
+    paint();
+    inp.addEventListener("input", () => {
+      P[k] = +inp.value;
+      paint();
+      bump();
+    });
+    return w;
+  }
+
+  function renderInspector() {
+    const m = MODS[idxOf(CUR)];
+    paintInspector($("#insp"), m);
+    paintInspector($("#dBody"), m);
+    paintFab();
+  }
+
+  /* #insp 与窄屏抽屉共用同一份结构：参数顺序、动作、读数完全一致 */
+  function paintInspector(box, m) {
+    if (!box) return;
+    box.innerHTML = "";
+
+    const keys = CTX[CUR] || [];
+    if (keys.length) {
+      const sec = el("div", "insp-sec");
+      sec.innerHTML = `<div class="insp-h">本模块参数<span class="r">${m.thm}</span></div>`;
+      keys.forEach(k => sec.appendChild(sliderNode(k)));
+      box.appendChild(sec);
+    }
+
+    const sec2 = el("div", "insp-sec");
+    sec2.innerHTML = `<div class="insp-h">其余参数<span class="r">全局共享</span></div>`;
+    Object.keys(PARAMS).filter(k => keys.indexOf(k) < 0).forEach(k => sec2.appendChild(sliderNode(k)));
+    box.appendChild(sec2);
+
+    const sec3 = el("div", "insp-sec");
+    sec3.innerHTML = `<div class="insp-h">动作</div>`;
+    const row = el("div", "row");
+    row.style.cssText = "flex-wrap:wrap;gap:6px";
+    [
+      ["重置", "R", resetAll],
+      ["扫描", "S", openSweep],
+      ["钉住", "P", togglePin],
+      ["分享", "L", doShare],
+      ["引导", "T", () => startTour()],
+      ["键盘", "?", () => openOverlay("keys")]
+    ].forEach(([lab, kk, fn]) => {
+      const b = el("button", "tbtn", `${lab}<span class="kk">${kk}</span>`);
+      b.addEventListener("click", fn);
+      row.appendChild(b);
+    });
+    sec3.appendChild(row);
+
+    const sec4 = el("div", "insp-sec");
+    sec4.innerHTML = `<div class="insp-h">本模块读数<span class="r">实时</span></div>` +
+      `<div>${readRows(inspectorReads())}</div>`;
+    box.appendChild(sec3);
+    box.appendChild(sec4);
+  }
+
+  /* 顶栏悬浮按钮上的徽标：当前偏离论文默认值的参数个数 */
+  function paintFab() {
+    const n = $("#fabN");
+    if (!n) return;
+    const k = Object.keys(DEF).filter(x => Math.abs(P[x] - DEF[x]) > 1e-9).length;
+    n.textContent = String(k);
+    n.style.color = k ? "var(--amber)" : "var(--cyan)";
+    n.style.background = k ? "rgba(255,199,107,.14)" : "rgba(94,231,255,.13)";
+  }
+
+  function openDrawer(on) {
+    const d = $("#drawer"), s = $("#dScrim");
+    if (!d) return;
+    d.classList.toggle("on", on);
+    if (s) s.classList.toggle("on", on);
+    if (on) { const b = $("#dBody"); if (b) b.scrollTop = 0; }
+  }
+
+  function inspectorReads() {
+    const H = horizon(P, D);
+    const base = [
+      ["r = ρ^ℓ", F.fmtNum(D.r, 5), "cy"],
+      ["N*", F.fmtInt(D.ns), D.sEv === "ok" ? "em" : D.sEv === "thin" ? "am" : "ro"],
+      ["e*", F.fmtNum(D.eB, 4), D.sBd === "ok" ? "em" : D.sBd === "thin" ? "am" : "ro"],
+      ["ℓ* 联合", String(H.all), "am"]
+    ];
+    if (CUR === "clocks" || CUR === "console") {
+      base.push(["t_det", F.fmtNum(D.tdet, 2), ""], ["t_acc", F.fmtNum(D.tacc, 2), "cy"]);
+    }
+    if (CUR === "limits") base.push(["地板 2ℓξ", F.fmtNum(F.floorBound(P.l, P.xi), 4), "ro"]);
+    if (CUR === "budget") base.push(["M", F.fmtInt(D.M), "cy"], ["c", String(D.c), ""]);
+    return base;
+  }
+
+  /* ---------- 变更传播 ---------- */
+  function bump() {
+    D = F.derive(P);
+    paintHeader();
+    updateDock();
+    paintFab();
+    const html = readRows(inspectorReads());
+    $$("#insp .insp-sec:last-child > div, #dBody .insp-sec:last-child > div")
+      .forEach(n => { n.innerHTML = html; });
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      const body = $("#cBody");
+      body.innerHTML = "";
+      const built = BUILD[CUR](D, P);
+      body.appendChild(built.root || built);
+      if (built.draw) built.draw();
+    });
+  }
+
+  function resetAll() {
+    P = Object.assign({}, DEF);
+    S.flips = [];
+    hardRefresh();
+    toast("已重置为论文默认参数", "ok");
+  }
+  function hardRefresh() {
+    D = F.derive(P);
+    paintHeader();
+    renderInspector();
+    renderCanvas();
+    updateDock();
+    writeHash();
+  }
+
+  /* ==========================================================================
+     15 · 预设
+     ========================================================================== */
+  const PRESETS = [
+    { id: "paper", name: "论文默认", s: "K=3 ρ=.85 ℓ=6 N=4096 L=64", p: { K: 3, rho: 0.85, l: 6, L: 64, xi: 0.004, eps: 0.05, delta: 0.05, W: 48, m: 3, nExp: 12 } },
+    { id: "long", name: "长切口 · 证据崩塌", s: "ℓ=40 —— 端点几乎不可分辨", p: { K: 3, rho: 0.85, l: 40, L: 64, xi: 0.004, eps: 0.05, delta: 0.05, W: 48, m: 3, nExp: 12 } },
+    { id: "broke", name: "预算枯竭", s: "W=2 < c=2 —— 审计无法进行", p: { K: 3, rho: 0.85, l: 6, L: 64, xi: 0.004, eps: 0.05, delta: 0.05, W: 2, m: 3, nExp: 12 } },
+    { id: "noise", name: "强扰动地板", s: "ξ=.05 —— 2ℓξ 吞掉 ρ^ℓ", p: { K: 3, rho: 0.85, l: 6, L: 64, xi: 0.05, eps: 0.05, delta: 0.05, W: 48, m: 3, nExp: 12 } },
+    { id: "scale", name: "大规模 regime", s: "N=2²⁰ L=256 —— 检测远早于能力", p: { K: 3, rho: 0.85, l: 6, L: 256, xi: 0.004, eps: 0.05, delta: 0.05, W: 96, m: 3, nExp: 20 } }
+  ];
+
+  function applyPreset(id) {
+    const p = PRESETS.find(x => x.id === id);
+    if (!p) return;
+    P = Object.assign({}, p.p);
+    S.flips = [];
+    $("#presetPop").classList.remove("on");
+    hardRefresh();
+    toast("已应用预设 · " + p.name, "ok");
+  }
+
+  function buildPresetPop() {
+    const box = $("#presetList");
+    box.innerHTML = "";
+    PRESETS.forEach(p => {
+      const b = el("button", "", `${p.name}<span class="s">${p.s}</span>`);
+      b.addEventListener("click", () => applyPreset(p.id));
+      box.appendChild(b);
+    });
+    const sep = el("div", "pop-sep");
+    box.appendChild(sep);
+    const r = el("button", "", `重置为默认<span class="s">R</span>`);
+    r.addEventListener("click", () => { $("#presetPop").classList.remove("on"); resetAll(); });
+    box.appendChild(r);
+  }
+
+  /* ==========================================================================
+     16 · 覆盖层：命令面板 / 扫描 / 键盘 / 引导
+     ========================================================================== */
+  function openOverlay(id) {
+    closeAll();
+    const n = $("#ovl" + id.charAt(0).toUpperCase() + id.slice(1));
+    if (n) n.classList.add("on");
+  }
+  function closeAll() {
+    $$(".ovl").forEach(n => n.classList.remove("on"));
+    $("#presetPop").classList.remove("on");
+    const ep = $("#exportPop");
+    if (ep) ep.classList.remove("on");
+    openDrawer(false);
+    stopTour();
+  }
+
+  /* ---------- 命令面板 ---------- */
+  let palSel = 0, palItems = [];
+
+  function palSource() {
+    const out = [];
+    MODS.forEach(m => out.push({
+      kind: "模块", n: m.n, t: m.name, h: m.thm, key: m.id + " " + m.name + " " + m.thm,
+      run: () => go(m.id)
+    }));
+    PRESETS.forEach(p => out.push({
+      kind: "预设", n: "▸", t: p.name, h: "preset", key: p.name + " " + p.s + " preset",
+      run: () => applyPreset(p.id)
+    }));
+    [
+      ["扫描可认证地平线", "S", openSweep, "sweep horizon 扫描 地平线"],
+      ["钉住当前参数", "P", togglePin, "pin 钉住 对比"],
+      ["复制分享链接", "L", doShare, "share link 分享 url"],
+      ["导出 CSV", "E", () => doExport("csv"), "export csv 导出 下载"],
+      ["导出 JSON", "", () => doExport("json"), "export json 导出"],
+      ["复制证书", "", () => doExport("cert"), "cert 证书 复制"],
+      ["重新引导", "T", () => startTour(), "tour 引导 教程"],
+      ["键盘快捷键", "?", () => openOverlay("keys"), "keys 键盘 快捷键"],
+      ["重置全部参数", "R", resetAll, "reset 重置 默认"]
+    ].forEach(([t, h, fn, key]) => out.push({ kind: "动作", n: "·", t, h, key, run: fn }));
+    return out;
+  }
+
+  function palRender(q) {
+    const list = $("#palList");
+    const all = palSource();
+    const ql = q.trim().toLowerCase();
+    palItems = !ql ? all : all.filter(x => x.key.toLowerCase().indexOf(ql) >= 0 ||
+      x.t.toLowerCase().indexOf(ql) >= 0);
+    if (!palItems.length) {
+      list.innerHTML = `<div class="pal-empty">没有匹配项</div>`;
+      return;
+    }
+    palSel = Math.min(palSel, palItems.length - 1);
+    let html = "", lastKind = "";
+    palItems.forEach((x, i) => {
+      if (x.kind !== lastKind) { html += `<div class="pal-sec">${x.kind}</div>`; lastKind = x.kind; }
+      html += `<div class="pal-item ${i === palSel ? "sel" : ""}" data-i="${i}">` +
+        `<span class="n">${x.n}</span><span class="t">${x.t}</span>` +
+        (x.h ? `<span class="h">${x.h}</span>` : "") + `</div>`;
+    });
+    list.innerHTML = html;
+    $$(".pal-item", list).forEach(n => {
+      n.addEventListener("click", () => {
+        const it = palItems[+n.dataset.i];
+        closeAll();
+        if (it) it.run();
+      });
+    });
+  }
+
+  function openPal() {
+    openOverlay("pal");
+    const inp = $("#palInput");
+    inp.value = "";
+    palSel = 0;
+    palRender("");
+    setTimeout(() => inp.focus(), 30);
+  }
+
+  /* ---------- 扫描 ---------- */
+  function buildSweepOverlay() {
+    const o = el("div", "ovl");
+    o.id = "ovlSweep";
+    o.innerHTML =
+      `<div class="ovl-mask" data-close="sweep"></div>
+       <div class="sheet" style="width:min(580px,93vw)">
+         <h3>可认证地平线扫描</h3>
+         <div id="sweepBody"></div>
+         <div style="display:flex;gap:8px;margin-top:16px;align-items:center">
+           <span style="font-family:var(--f-mono);font-size:9.5px;color:var(--faint);flex:1" id="sweepNote"></span>
+           <button class="tour-btn" id="sweepClose">关闭</button>
+         </div>
+       </div>`;
+    document.body.appendChild(o);
+    $("#sweepClose", o).addEventListener("click", closeAll);
+    return o;
+  }
+
+  function openSweep() {
+    const o = $("#ovlSweep") || buildSweepOverlay();
+    const H = horizon(P, D);
+    const cap = Math.max(24, Math.round(Math.max(H.ev, H.bd, H.fl, H.all, 1) * 1.22));
+    const rows = [
+      ["证据", H.ev, "var(--cyan)", "N* ≤ N"],
+      ["写入", H.bd, "var(--amber)", "e* ≤ δ"],
+      ["扰动地板", H.fl, "var(--rose)", "ρ^ℓ > 2ℓξ"]
+    ];
+    const body = $("#sweepBody", o);
+    body.innerHTML =
+      `<div style="font-size:11.5px;line-height:1.7;color:var(--dim);margin-bottom:12px">` +
+      `固定其余参数，逐项二分出每个判据<b style="color:var(--ink-2)">仍然成立</b>的最大切口长度 ℓ。` +
+      `三个地平线取最小值，就是这套参数下能同时说三句话的最长切口。</div>` +
+      rows.map(([k, v, c, cond]) =>
+        `<div class="hbar"><div class="hk">${k}<br><span style="color:var(--faint);font-size:8px">${cond}</span></div>` +
+        `<div class="track"><div class="fill" style="width:${(v / cap * 100).toFixed(1)}%;background:${c}"></div></div>` +
+        `<div class="hv" style="color:${c}">${v}${v >= cap ? "+" : ""}</div></div>`
+      ).join("") +
+      `<div class="hbar" style="border-top:1px solid var(--line-2);margin-top:6px;padding-top:11px">` +
+      `<div class="hk" style="color:var(--ink)">联合 ℓ*</div>` +
+      `<div class="track"><div class="fill" style="width:${(H.all / cap * 100).toFixed(1)}%;background:var(--emerald)"></div></div>` +
+      `<div class="hv" style="color:var(--emerald)">${H.all}${H.all >= cap ? "+" : ""}</div></div>`;
+
+    const bind = H.all === H.ev ? "证据" : H.all === H.bd ? "写入" : "扰动地板";
+    $("#sweepNote", o).textContent =
+      `当前 ℓ = ${P.l}${P.l > H.all ? "，已超出联合地平线" : "，在联合地平线之内"} · 瓶颈：${bind}`;
+    openOverlay("sweep");
+  }
+
+  /* ---------- 键盘表 ---------- */
+  /* ---------- 引导 ---------- */
+  const TOUR = [
+    { sel: "#rail", t: "九个模块", b: "左栏是论文的九个切面。数字键 1–9 直接跳转，[ ] 前后翻。切换时参数不丢。" },
+    { sel: "#canvas", t: "中央画布", b: "每个模块一张画布，不做长滚动。所有图都是实时算的，不是截图。" },
+    { sel: "#insp", t: "参数面板", b: "顶部是这个模块最相关的参数，下面是全部十项。拖动任意一项，画布与底栏同时变。" },
+    { sel: "#dock", t: "常驻读数", b: "九项派生量与三个状态灯常驻底部。无论你在哪个模块，都能看到全局是否还成立。" },
+    { sel: "#btnPreset", t: "预设场景", b: "五个预设直接把你带到失效边界：长切口、预算枯竭、强扰动、大规模。" },
+    { sel: "#btnPal", t: "命令面板", b: "⌘K / Ctrl K 搜模块、预设和动作。这是最快的使用方式。" }
+  ];
+  let tourI = -1;
+
+  function startTour() {
+    closeAll();
+    $("#ovlTour").classList.add("on");
+    tourI = -1;
+    tourNext();
+  }
+  function stopTour() {
+    tourI = -1;
+  }
+  function tourNext() {
+    if (tourI >= TOUR.length - 1) { closeAll(); return; }
+    tourI++;
+    tourPaint();
+  }
+  function tourPrev() {
+    if (tourI <= 0) return;
+    tourI--;
+    tourPaint();
+  }
+  function tourPaint() {
+    const st = TOUR[tourI];
+    if (!st) return;
+    const el2 = $(st.sel);
+    if (!el2) return;
+    const r = el2.getBoundingClientRect();
+    const pad = 6;
+    const spot = $("#tourSpot");
+    spot.style.left = (r.left - pad) + "px";
+    spot.style.top = (r.top - pad) + "px";
+    spot.style.width = (r.width + pad * 2) + "px";
+    spot.style.height = (r.height + pad * 2) + "px";
+
+    const tip = $("#tourTip");
+    const tw = 300, th = 170;
+    let x, y;
+    if (r.right + 16 + tw < innerWidth) { x = r.right + 16; y = r.top; }
+    else if (r.left - 16 - tw > 0) { x = r.left - 16 - tw; y = r.top; }
+    else { x = Math.min(innerWidth - tw - 16, Math.max(16, r.left)); y = Math.min(innerHeight - th - 16, r.bottom + 14); }
+    y = Math.max(14, Math.min(innerHeight - th - 14, y));
+    tip.style.left = x + "px";
+    tip.style.top = y + "px";
+    tip.style.right = "auto";
+
+    $("#tourStep").textContent = `STEP ${tourI + 1} / ${TOUR.length}`;
+    $("#tourT").textContent = st.t;
+    $("#tourB").textContent = st.b;
+    $("#tourNext").textContent = tourI === TOUR.length - 1 ? "完成" : "下一步";
+    $("#tourPrev").style.visibility = tourI === 0 ? "hidden" : "visible";
+  }
+
+  /* ==========================================================================
+     17 · 动作：钉住 / 分享 / 导出
+     ========================================================================== */
+  function togglePin() {
+    if (S.pin) {
+      S.pin = null;
+      $("#btnPin").classList.remove("on");
+      toast("已取消钉住", "ok");
+    } else {
+      S.pin = { r: D.r, eB: D.eB, ns: D.ns, P: Object.assign({}, P) };
+      $("#btnPin").classList.add("on");
+      toast("已钉住当前参数，底栏显示相对变化", "ok");
+    }
+    updateDock();
+  }
+
+  function paramStr() {
+    return Object.keys(PARAMS).map(k => k + "=" + P[k]).join("&");
+  }
+  function writeHash() {
+    const h = "#" + CUR + "&" + paramStr();
+    try { history.replaceState(null, "", h); } catch (e) { }
+  }
+  function readHash() {
+    const h = decodeURIComponent(location.hash.replace(/^#/, ""));
+    if (!h) return;
+    const [id, qs] = h.split("&");
+    if (BUILD[id]) CUR = id;
+    if (qs || h.indexOf("=") > 0) {
+      const src = qs ? h.slice(id.length + 1) : h;
+      src.split("&").forEach(kv => {
+        const [k, v] = kv.split("=");
+        if (PARAMS[k] && v !== undefined && isFinite(+v)) P[k] = +v;
+      });
+    }
+  }
+
+  function doShare() {
+    writeHash();
+    const url = location.href;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(
+        () => toast("链接已复制 —— 参数与模块都在里面", "ok"),
+        () => toast("复制失败，地址栏已是可分享链接", "warn")
+      );
+    } else {
+      toast("地址栏已是可分享链接", "ok");
+    }
+  }
+
+  function download(name, text, mime) {
+    const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  }
+
+  function doExport(kind) {
+    const ep = $("#exportPop");
+    if (ep) ep.classList.remove("on");
+    if (kind === "cert") {
+      const txt = certText(D, P);
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast("证书已复制", "ok"), () => download("certificate.txt", txt));
+      else download("certificate.txt", txt);
+      return;
+    }
+    if (kind === "json") {
+      const H = horizon(P, D);
+      const obj = {
+        paper: "The Certification Horizon of Learned Computation",
+        params: P, derived: D, horizon: H,
+        checks: { thm2Residual: F.verifyTheorem2(P.rho, P.K, 1, Math.min(P.l, 24)) },
+        generated: new Date().toISOString()
+      };
+      download("horizon.json", JSON.stringify(obj, null, 2), "application/json");
+      toast("已导出 JSON", "ok");
+      return;
+    }
+    const rows = [["l", "rho^l", "N_star", "2*l*xi", "e_star_audit"]];
+    for (let l = 1; l <= 60; l++) {
+      const r = Math.pow(P.rho, l);
+      const c = F.CK(r, P.K);
+      const ns = (isFinite(c) && c > 0) ? Math.ceil(LOG(1 / P.delta) / c) : "";
+      const M = F.budgetM(D.N, P.W, P.m);
+      const e = M > 0 ? F.estarExact(Math.min(M, 200), r, P.K) : 0.5;
+      rows.push([l, r.toPrecision(8), ns, (2 * l * P.xi).toPrecision(6), e.toPrecision(8)]);
+    }
+    download("horizon-curves.csv", rows.map(r => r.join(",")).join("\n"), "text/csv;charset=utf-8");
+    toast("已导出 CSV", "ok");
+  }
+
+  function buildExportPop() {
+    const p = el("div", "pop");
+    p.id = "exportPop";
+    p.style.right = "auto";
+    p.innerHTML =
+      `<div class="pop-h">导出</div>
+       <button data-x="csv">主曲线 CSV<span class="s">ℓ = 1…60 的 ρ^ℓ / N* / e*</span></button>
+       <button data-x="json">参数 + 派生量 JSON<span class="s">含地平线与核验残差</span></button>
+       <button data-x="cert">证书文本<span class="s">复制到剪贴板</span></button>`;
+    document.body.appendChild(p);
+    $$("[data-x]", p).forEach(b => b.addEventListener("click", () => doExport(b.dataset.x)));
+    return p;
+  }
+
+  /* ==========================================================================
+     18 · 事件绑定
+     ========================================================================== */
+  function bindChrome() {
+    $("#btnPal").addEventListener("click", openPal);
+    $("#btnPreset").addEventListener("click", e => {
+      e.stopPropagation();
+      const pop = $("#presetPop");
+      pop.classList.toggle("on");
+      const r = $("#btnPreset").getBoundingClientRect();
+      pop.style.top = (r.bottom + 6) + "px";
+      pop.style.right = Math.max(10, innerWidth - r.right) + "px";
+    });
+    $("#btnPin").addEventListener("click", togglePin);
+    $("#btnSweep").addEventListener("click", openSweep);
+    $("#btnShare").addEventListener("click", doShare);
+    $("#btnExport").addEventListener("click", e => {
+      e.stopPropagation();
+      const pop = $("#exportPop") || buildExportPop();
+      const r = $("#btnExport").getBoundingClientRect();
+      pop.style.top = (r.bottom + 6) + "px";
+      pop.style.right = Math.max(10, innerWidth - r.right) + "px";
+      pop.classList.toggle("on");
+    });
+
+    $("#tourNext").addEventListener("click", tourNext);
+    $("#tourPrev").addEventListener("click", tourPrev);
+    $("#tourSkip").addEventListener("click", closeAll);
+
+    /* 窄屏参数抽屉 */
+    const fab = $("#fab");
+    if (fab) fab.addEventListener("click", () => openDrawer(!$("#drawer").classList.contains("on")));
+    const dx = $("#dClose");
+    if (dx) dx.addEventListener("click", () => openDrawer(false));
+    const dsc = $("#dScrim");
+    if (dsc) dsc.addEventListener("click", () => openDrawer(false));
+
+    $("#palInput").addEventListener("input", e => { palSel = 0; palRender(e.target.value); });
+    $("#palInput").addEventListener("keydown", e => {
+      if (e.key === "ArrowDown") { e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); palRender($("#palInput").value); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); palSel = Math.max(0, palSel - 1); palRender($("#palInput").value); }
+      else if (e.key === "Enter") {
+        const it = palItems[palSel];
+        closeAll();
+        if (it) it.run();
+      }
+    });
+
+    document.addEventListener("click", e => {
+      if (!e.target.closest("#presetPop") && !e.target.closest("#btnPreset")) $("#presetPop").classList.remove("on");
+      const ep = $("#exportPop");
+      if (ep && !e.target.closest("#exportPop") && !e.target.closest("#btnExport")) ep.classList.remove("on");
+      const m = e.target.closest("[data-close]");
+      if (m) closeAll();
+    });
+
+    /* 卡片光斑 */
+    $("#cBody").addEventListener("mousemove", e => {
+      const c = e.target.closest(".card,.vd,.lim-c,.stat,.ov-node");
+      if (!c) return;
+      const r = c.getBoundingClientRect();
+      c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      c.style.setProperty("--my", (e.clientY - r.top) + "px");
+    }, { passive: true });
+
+    /* 键盘 */
+    addEventListener("keydown", e => {
+      const tag = (e.target.tagName || "").toLowerCase();
+      const typing = tag === "input" || tag === "textarea" || tag === "select";
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPal(); return; }
+      if (e.key === "Escape") {
+        const any = $$(".ovl.on").length || $("#presetPop").classList.contains("on") ||
+          ($("#drawer") && $("#drawer").classList.contains("on"));
+        if (any) { closeAll(); return; }
+      }
+      if (typing) return;
+      const k = e.key;
+      if (k >= "1" && k <= "9") { go(MODS[+k - 1].id); return; }
+      if (k === "[") { go(MODS[(idxOf(CUR) + MODS.length - 1) % MODS.length].id); return; }
+      if (k === "]") { go(MODS[(idxOf(CUR) + 1) % MODS.length].id); return; }
+      if (k === "?" || (k === "/" && e.shiftKey)) { openOverlay("keys"); return; }
+      if (k === "ArrowLeft" || k === "ArrowRight") {
+        const key = (CTX[CUR] || ["l"])[0];
+        if (!key) return;
+        e.preventDefault();
+        const df = PARAMS[key];
+        const v = Math.max(df.min, Math.min(df.max, P[key] + (k === "ArrowRight" ? 1 : -1) * df.step));
+        P[key] = +v.toFixed(6);
+        hardRefresh();
+        return;
+      }
+      const low = k.toLowerCase();
+      if (low === "p") togglePin();
+      else if (low === "s") openSweep();
+      else if (low === "l") doShare();
+      else if (low === "e") doExport("csv");
+      else if (low === "t") startTour();
+      else if (low === "r") resetAll();
+      else if (low === "i") openDrawer(!$("#drawer").classList.contains("on"));
+    });
+
+    /* 尺寸变化 */
+    let rt = 0, lastW = 0;
+    const ro = new ResizeObserver(() => {
+      const w = $("#canvas").clientWidth;
+      if (Math.abs(w - lastW) < 12) return;
+      lastW = w;
+      clearTimeout(rt);
+      rt = setTimeout(() => { if (!pending) renderCanvas(); }, 200);
+    });
+    ro.observe($("#canvas"));
+
+    addEventListener("resize", () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => { if (!pending) renderCanvas(); }, 260);
+    }, { passive: true });
+
+    addEventListener("hashchange", () => {
+      readHash();
+      hardRefresh();
+    });
+  }
+
+  /* ==========================================================================
+     19 · 启动
+     ========================================================================== */
+  function init() {
+    if (G.staticMode || G.reduce) document.documentElement.classList.add("no-anim");
+
+    readHash();
+    D = F.derive(P);
+
+    buildRail();
+    buildDock();
+    buildPresetPop();
+    buildSweepOverlay();
+    buildExportPop();
+
+    paintRail();
+    paintHeader();
+    renderInspector();
+    renderCanvas();
+    updateDock();
+
+    bindChrome();
+
+    if (G.field) G.field();
+
+    /* 首次访问自动引导 */
+    let seen = false;
+    try { seen = localStorage.getItem("horizon.seen") === "1"; } catch (e) { }
+    if (!seen && !G.staticMode) {
+      setTimeout(() => {
+        startTour();
+        try { localStorage.setItem("horizon.seen", "1"); } catch (e) { }
+      }, 900);
+    }
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+
+  /* 调试出口 */
+  window.__H = { P: () => P, D: () => D, go, horizon, applyPreset, S };
+})();
+</script>
+<script>window.__TLD_CFG={"id": "m2", "face": "cen", "name": "纪岚", "role": "认证地平线 · 主管", "accent": "#7b4fd0", "suppress": "horizon.seen", "steps": [{"t": "这里是认证实验室", "b": "我是纪岚。这间实验室只回答一个问题：一个模型能不能被<em>证明</em>学到过，而不是靠它自己说。接下来我带你走一遍。"}, {"sel": "#rail", "t": "九个切面", "pos": "right", "b": "左栏是论文的九个模块：总览、三种问题、受保护切口、证据代价、写入预算、三种时钟、认证台、边界、复现。<em>数字键 1–9</em> 直跳。"}, {"sel": "#canvas", "t": "中央画布", "pos": "left", "b": "每个模块一张画布，不做长滚动。所有图都是<em>实时算</em>的，不是截图——所以参数一动，图就跟着动。"}, {"sel": "#insp", "t": "右栏参数", "pos": "left", "b": "上半是这个模块最相关的参数，下面是全部十项。拖动任意一项，画布与底栏<em>同时</em>变。"}, {"sel": "#dock", "t": "底栏常驻读数", "pos": "top", "b": "九项派生量加三个状态灯。不管你翻到哪一章，它都告诉你：<em>全局还成不成立</em>。"}, {"sel": "#btnPreset", "t": "预设场景", "pos": "bottom", "b": "五个预设直接把你推到失效边界：长切口、预算枯竭、强扰动、大规模。想看「什么时候不成立」，点这个最快。"}, {"sel": "#btnPal", "t": "⌘K", "pos": "bottom", "b": "命令面板，搜模块、预设、动作。<em>熟了以后你基本只用这一个键</em>。"}]};</script><!-- tl-lab-director v1：实验室负责人引导
+     由 build.sh 注入 </body> 前（晚于 vendor-shell，故层级在上）
+     配置从 window.__TLD_CFG 读，见 build.sh 里的 V1/V4 两份 -->
+<style>
+#tld{position:fixed;inset:0;z-index:999990;pointer-events:none;
+  --paper:#fdf9f0;--paper2:#f6f0e2;--ink:#2b2822;--ink2:#6d6659;--ink3:#9d9486;
+  --cy:#0e7f9c;--line:rgba(43,40,34,.16);--acc:#0e7f9c;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  opacity:0;transition:opacity .26s ease;font-feature-settings:"kern" 1}
+#tld.on{opacity:1}
+#tld .tld-spot{position:absolute;border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(3,5,9,.66),0 0 0 2px rgba(94,231,255,.62),0 0 30px rgba(94,231,255,.20);
+  transition:left .44s cubic-bezier(.16,1,.3,1),top .44s cubic-bezier(.16,1,.3,1),
+             width .44s cubic-bezier(.16,1,.3,1),height .44s cubic-bezier(.16,1,.3,1)}
+#tld .tld-card{position:absolute;pointer-events:auto;width:min(352px,calc(100vw - 26px));
+  background:linear-gradient(168deg,var(--paper),var(--paper2));
+  border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 24px 64px -22px rgba(0,0,0,.72),0 1px 0 rgba(255,255,255,.85) inset;
+  padding:13px 15px 12px;
+  transform:translateY(10px) scale(.984);opacity:0;
+  transition:transform .44s cubic-bezier(.16,1,.3,1),opacity .32s ease,
+             left .44s cubic-bezier(.16,1,.3,1),top .44s cubic-bezier(.16,1,.3,1)}
+#tld.on .tld-card{transform:none;opacity:1}
+/* 顶部一道强调色压边，像工作证的色条 */
+#tld .tld-card::before{content:"";position:absolute;left:15px;right:15px;top:0;height:2.5px;
+  border-radius:0 0 3px 3px;background:var(--acc);opacity:.85}
+
+#tld .tld-top{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+#tld .tld-face{flex:none;width:46px;height:46px;border-radius:50%;overflow:hidden;
+  background:#fffdf8;border:1.5px solid var(--acc);box-shadow:0 0 0 3px rgba(14,127,156,.10)}
+#tld .tld-face svg{display:block;width:100%;height:100%}
+#tld .tld-id{flex:1;min-width:0;line-height:1.25}
+#tld .tld-id b{display:block;font-size:14.5px;color:var(--ink);letter-spacing:.04em}
+#tld .tld-id i{display:block;font-style:normal;font-size:10.5px;color:var(--ink2);
+  letter-spacing:.06em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tld .tld-step{flex:none;font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;
+  color:var(--ink3);letter-spacing:.1em;align-self:flex-start;margin-top:3px}
+
+#tld .tld-t{margin:0 0 5px;font-size:14.5px;font-weight:650;color:var(--ink);letter-spacing:.01em}
+#tld .tld-b{margin:0;font-size:12.5px;line-height:1.72;color:#4a453c}
+#tld .tld-b em{font-style:normal;color:var(--acc);font-weight:600}
+
+#tld .tld-bar{height:2px;background:rgba(43,40,34,.10);border-radius:2px;margin:12px 0 10px;overflow:hidden}
+#tld .tld-fill{height:100%;width:0;background:var(--acc);border-radius:2px;
+  transition:width .44s cubic-bezier(.16,1,.3,1)}
+
+#tld .tld-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#tld .tld-skip{cursor:pointer;border:0;background:none;padding:4px 2px;font:inherit;
+  font-size:11px;color:var(--ink3);letter-spacing:.02em}
+#tld .tld-skip:hover{color:var(--ink2)}
+#tld .tld-nav{display:flex;gap:6px}
+#tld .tld-nav button{cursor:pointer;font:inherit;border-radius:8px;padding:6px 13px;
+  font-size:12px;transition:all .16s ease;border:1px solid var(--line);
+  background:rgba(43,40,34,.04);color:var(--ink2)}
+#tld .tld-nav button:hover{background:rgba(43,40,34,.09);color:var(--ink)}
+#tld .tld-nav .tld-next{background:var(--ink);border-color:var(--ink);color:#fdf9f0;font-weight:600}
+#tld .tld-nav .tld-next:hover{background:#000;border-color:#000}
+#tld .tld-prev[disabled]{opacity:.34;cursor:default}
+
+/* 常驻入口：关掉引导后还能叫回负责人 */
+#tldFab{position:fixed;right:14px;bottom:70px;z-index:999980;cursor:pointer;
+  display:flex;align-items:center;gap:6px;padding:7px 12px 7px 9px;border-radius:999px;
+  border:1px solid rgba(94,231,255,.30);background:rgba(9,13,20,.82);color:#cfe6f2;
+  font-family:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:11.5px;letter-spacing:.04em;backdrop-filter:blur(10px);
+  box-shadow:0 8px 26px -10px rgba(0,0,0,.8);transition:all .2s ease}
+#tldFab svg{display:block;width:15px;height:15px}
+#tldFab:hover{border-color:rgba(94,231,255,.62);color:#eaf6fc;transform:translateY(-1px)}
+#tldFab.hide{opacity:0;pointer-events:none;transform:translateY(6px)}
+
+/* 小视口（内嵌在博物馆卡片里时约 460–560 高）：压紧一点 */
+@media (max-height:600px){
+  #tld .tld-card{width:min(330px,calc(100vw - 22px));padding:11px 13px 10px}
+  #tld .tld-face{width:38px;height:38px}
+  #tld .tld-t{font-size:13.5px}
+  #tld .tld-b{font-size:12px;line-height:1.64}
+  #tld .tld-bar{margin:9px 0 8px}
+  #tldFab{bottom:62px;font-size:11px;padding:6px 10px 6px 8px}
+}
+</style>
+<script>
+(function () {
+  "use strict";
+  var C = window.__TLD_CFG;
+  if (!C) return;
+  /* v4 自带一套 6 步导览且首次访问自动弹；让位给负责人，避免两层遮罩打架 */
+  if (C.suppress) { try { localStorage.setItem(C.suppress, "1"); } catch (e) {} }
+
+  var KEY = "tl.dir." + C.id, seen = false;
+  try { seen = localStorage.getItem(KEY) === "1"; } catch (e) {}
+
+  var FACE = {
+    /* 阿衡：圆框眼镜、短寸、白大褂，偏冷青 */
+    wu:
+      '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect width="48" height="48" fill="#fffdf8"/>' +
+      '<path d="M7 47c1.5-8.4 8-12.9 17-12.9S39.5 38.6 41 47z" fill="#eee7d7" stroke="#2b2822" stroke-width="1.15"/>' +
+      '<path d="M19.6 34.4 24 39.6l4.4-5.2" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linejoin="round"/>' +
+      '<path d="M21.4 29.6h5.2v5.4h-5.2z" fill="#e9dcc2" stroke="#2b2822" stroke-width="1"/>' +
+      '<ellipse cx="24" cy="20.6" rx="8.1" ry="9.1" fill="#f4e6cc" stroke="#2b2822" stroke-width="1.2"/>' +
+      '<path d="M15.7 19.4c0-5.9 3.7-9.5 8.3-9.5s8.3 3.6 8.3 9.5c-1.7-3-4.2-4.4-8.3-4.4s-6.6 1.4-8.3 4.4z" fill="#2b2822"/>' +
+      '<circle cx="20.5" cy="21" r="3.15" fill="none" stroke="#2b2822" stroke-width="1.1"/>' +
+      '<circle cx="27.5" cy="21" r="3.15" fill="none" stroke="#2b2822" stroke-width="1.1"/>' +
+      '<path d="M23.6 21h.8" stroke="#2b2822" stroke-width="1.1"/>' +
+      '<circle cx="20.5" cy="21" r="1.05" fill="#0e7f9c"/><circle cx="27.5" cy="21" r="1.05" fill="#0e7f9c"/>' +
+      '<path d="M21.9 25.9c.9.8 3.3.8 4.2 0" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linecap="round"/>' +
+      '</svg>',
+    /* 纪岚：齐肩短发、细框、耳环，偏紫 */
+    cen:
+      '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect width="48" height="48" fill="#fffdf8"/>' +
+      '<path d="M7.5 47c1.4-8.2 7.8-12.6 16.5-12.6S39.1 38.8 40.5 47z" fill="#efe8da" stroke="#2b2822" stroke-width="1.15"/>' +
+      '<path d="M20 34.6 24 39.4l4-4.8" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linejoin="round"/>' +
+      '<path d="M21.6 29.4h4.8v5.6h-4.8z" fill="#e9dcc2" stroke="#2b2822" stroke-width="1"/>' +
+      '<ellipse cx="24" cy="20.8" rx="7.7" ry="8.8" fill="#f6e9d2" stroke="#2b2822" stroke-width="1.2"/>' +
+      '<path d="M16.3 21.4c-.9-6.6 2.4-11.6 7.7-11.6s8.6 5 7.7 11.6c-.6-1.4-.6-3.6-.6-3.6-2.2 1.1-4.4 1.5-7.1 1.5s-4.9-.4-7.1-1.5c0 0 0 2.2-.6 3.6z" fill="#2b2822"/>' +
+      '<path d="M16.6 21.6c-1.5 1.2-1.8 5.4-.5 8.6M31.4 21.6c1.5 1.2 1.8 5.4.5 8.6" fill="none" stroke="#2b2822" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<path d="M20.4 20.8h3.4M24.2 20.8h3.4" stroke="#2b2822" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<circle cx="20.6" cy="21.2" r=".95" fill="#7b4fd0"/><circle cx="27.4" cy="21.2" r=".95" fill="#7b4fd0"/>' +
+      '<path d="M22.2 25.8c.8.9 2.8.9 3.6 0" fill="none" stroke="#2b2822" stroke-width="1.15" stroke-linecap="round"/>' +
+      '<circle cx="32.2" cy="28.6" r="1.5" fill="#7b4fd0"/>' +
+      '</svg>'
+  };
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/>' +
+    '<path d="M4.6 20.4c.7-3.9 3.8-6 7.4-6s6.7 2.1 7.4 6"/></svg>';
+
+  /* ---------- 建 DOM ---------- */
+  var root = document.createElement("div");
+  root.id = "tld";
+  root.innerHTML =
+    '<div class="tld-spot"></div>' +
+    '<div class="tld-card">' +
+      '<div class="tld-top">' +
+        '<div class="tld-face">' + (FACE[C.face] || FACE.wu) + '</div>' +
+        '<div class="tld-id"><b></b><i></i></div>' +
+        '<div class="tld-step"></div>' +
+      '</div>' +
+      '<h4 class="tld-t"></h4>' +
+      '<p class="tld-b"></p>' +
+      '<div class="tld-bar"><div class="tld-fill"></div></div>' +
+      '<div class="tld-foot">' +
+        '<button class="tld-skip" type="button">不再提示</button>' +
+        '<div class="tld-nav">' +
+          '<button class="tld-prev" type="button">←</button>' +
+          '<button class="tld-next" type="button">下一步 →</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  if (C.accent) root.style.setProperty("--acc", C.accent);
+  document.body.appendChild(root);
+
+  var fab = document.createElement("button");
+  fab.id = "tldFab";
+  fab.type = "button";
+  fab.title = "叫回实验室负责人";
+  fab.innerHTML = ICON + "<span>负责人</span>";
+  document.body.appendChild(fab);
+
+  var spot = root.querySelector(".tld-spot"),
+      card = root.querySelector(".tld-card"),
+      elT = root.querySelector(".tld-t"),
+      elB = root.querySelector(".tld-b"),
+      elStep = root.querySelector(".tld-step"),
+      elFill = root.querySelector(".tld-fill"),
+      elPrev = root.querySelector(".tld-prev"),
+      elNext = root.querySelector(".tld-next"),
+      elSkip = root.querySelector(".tld-skip");
+
+  root.querySelector(".tld-id b").textContent = C.name;
+  root.querySelector(".tld-id i").textContent = C.role;
+
+  var i = -1, open = false, raf = 0;
+  var steps = C.steps || [];
+
+  function vis(el) {
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 4 && r.height > 4 && getComputedStyle(el).visibility !== "hidden";
+  }
+  function moveSpot(l, t, w, h) {
+    spot.style.left = l + "px"; spot.style.top = t + "px";
+    spot.style.width = w + "px"; spot.style.height = h + "px";
+  }
+  function moveCard(x, y) { card.style.left = x + "px"; card.style.top = y + "px"; }
+
+  function placeCard(r, pref) {
+    var cw = card.offsetWidth, ch = card.offsetHeight,
+        gap = 14, M = 12, vw = innerWidth, vh = innerHeight;
+    function fits(x, y) { return x >= M && y >= M && x + cw <= vw - M && y + ch <= vh - M; }
+    var order = pref ? [pref, "right", "left", "bottom", "top"] : ["right", "left", "bottom", "top"];
+    var done = {};
+    for (var k = 0; k < order.length; k++) {
+      var p = order[k]; if (done[p]) continue; done[p] = 1;
+      var x, y;
+      if (p === "right") { x = r.right + gap; y = r.top; }
+      else if (p === "left") { x = r.left - gap - cw; y = r.top; }
+      else if (p === "bottom") { x = r.left; y = r.bottom + gap; }
+      else { x = r.left; y = r.top - gap - ch; }
+      if (fits(x, y)) { moveCard(x, y); return; }
+    }
+    /* 都放不下（内嵌小卡片里常见）：贴底居中，允许压住目标 */
+    moveCard(Math.max(M, Math.min(vw - cw - M, r.left)), Math.max(M, vh - ch - M));
+  }
+
+  function paint() {
+    var st = steps[i]; if (!st) return;
+    elT.innerHTML = st.t || "";
+    elB.innerHTML = st.b || "";
+    elStep.textContent = ("0" + (i + 1)).slice(-2) + " / " + ("0" + steps.length).slice(-2);
+    elFill.style.width = ((i + 1) / steps.length * 100) + "%";
+    elPrev.disabled = i === 0;
+    elNext.textContent = i === steps.length - 1 ? "开始动手 ✓" : "下一步 →";
+
+    var t = st.sel ? document.querySelector(st.sel) : null;
+    if (!vis(t)) t = null;
+
+    if (!t) {
+      /* 没有目标（开场白）：在正中留一个极小的孔，整屏压暗 */
+      moveSpot(innerWidth / 2 - 1, innerHeight / 2 - 1, 2, 2);
+      moveCard(Math.max(12, (innerWidth - card.offsetWidth) / 2),
+               Math.max(12, (innerHeight - card.offsetHeight) / 2));
+      return;
+    }
+    var r = t.getBoundingClientRect(), pad = 6;
+    moveSpot(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2);
+    placeCard(r, st.pos);
+  }
+
+  /* 目标可能在未激活的章节里（v1 是章节切换式，其余章节 display:none）：
+     借 vendor-shell 的章节栏把它翻出来，否则聚光灯只能退化成居中 */
+  function revealTarget(sel) {
+    var t = document.querySelector(sel);
+    if (!t || vis(t)) return t;
+    var sec = t.closest ? t.closest("section") : null;
+    if (sec && sec.parentElement) {
+      var sibs = [].slice.call(sec.parentElement.children).filter(function (e) {
+        return e.tagName === "SECTION";
+      });
+      var idx = sibs.indexOf(sec);
+      var bar = document.getElementById("vshBar");
+      if (idx >= 0 && bar) {
+        var btns = bar.querySelectorAll("button");
+        if (btns[idx]) {
+          btns[idx].click();
+          return document.querySelector(sel);
+        }
+      }
+    }
+    return t;
+  }
+
+  /* 目标可能被祖先的 overflow 裁掉（v1 的章节是个 overflow-y:auto 的固定视口，
+     控件常在折叠线以下）。注意不能只跟视口比：元素矩形可能落在视口内、却在容器外 */
+  function scrollerOf(el) {
+    var cur = el.parentElement;
+    while (cur && cur !== document.body) {
+      var cs = getComputedStyle(cur);
+      if (/(auto|scroll)/.test(cs.overflowY) && cur.scrollHeight > cur.clientHeight + 2) return cur;
+      cur = cur.parentElement;
+    }
+    return null;
+  }
+  function ensureVisible(el) {
+    var sc = scrollerOf(el);
+    if (!sc) return false;
+    var r = el.getBoundingClientRect(), cr = sc.getBoundingClientRect(), m = 28;
+    if (r.top >= cr.top + m && r.bottom <= cr.bottom - m) return false;
+    /* 直接改 scrollTop（非平滑）：位置立刻确定，避免聚光灯追着动画跑偏 */
+    sc.scrollTop += (r.top + r.height / 2) - (cr.top + cr.height / 2);
+    return true;
+  }
+
+  /* 目标可能在可滚动容器里：先滚到可见，再定位 */
+  function goto(k) {
+    i = k;
+    var st = steps[i]; if (!st) return;
+    var t = st.sel ? document.querySelector(st.sel) : null;
+    if (t && !vis(t)) t = revealTarget(st.sel);
+    if (vis(t)) ensureVisible(t);
+    paint();
+  }
+
+  function show(k) {
+    open = true;
+    fab.classList.add("hide");
+    root.style.display = "block";
+    /* 先量一次高度，再开 opacity，避免首帧卡片位置跳动 */
+    paint();
+    requestAnimationFrame(function () { root.classList.add("on"); });
+    goto(k);
+  }
+  function hide() {
+    open = false;
+    root.classList.remove("on");
+    setTimeout(function () { if (!open) root.style.display = "none"; }, 260);
+    fab.classList.remove("hide");
+  }
+  function finish() {
+    try { localStorage.setItem(KEY, "1"); } catch (e) {}
+    hide();
+  }
+
+  elNext.addEventListener("click", function () {
+    if (i >= steps.length - 1) { finish(); return; }
+    goto(i + 1);
+  });
+  elPrev.addEventListener("click", function () { if (i > 0) goto(i - 1); });
+  elSkip.addEventListener("click", finish);
+  fab.addEventListener("click", function () { if (!open) show(0); });
+
+  /* 引导开着时接管方向键与 Esc；开着期间不让底层实验室的快捷键抢走 */
+  addEventListener("keydown", function (e) {
+    if (!open) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); if (i < steps.length - 1) goto(i + 1); else finish(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); if (i > 0) goto(i - 1); }
+  }, true);
+
+  /* 视口变化 / 容器滚动时重定位 */
+  function reflow() {
+    if (!open) return;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(paint);
+  }
+  addEventListener("resize", reflow);
+  addEventListener("scroll", reflow, true);
+
+  root.style.display = "none";
+  if (!seen) setTimeout(function () { show(0); }, 620);
+})();
+</script>
+</body>
+</html>

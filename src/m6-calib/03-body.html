@@ -1,0 +1,117 @@
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 06</span>校准放大器</h1>
+    <span class="claim">「说 90% 把握，实际对 50% 次」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">天气预报员</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">把握 vs 实际</span><span class="td">两个滑块，看曲线偏离</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">可靠性图 + ECE</span><span class="td">完整指标，供深挖</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>台里新来的<span class="hl">天气预报员</span>，从来只报一种数</h3>
+      <div class="stage">
+        <div class="forecaster">
+          <div class="avatar">🕶️</div>
+          <div class="nm">预报员 · 90% 哥</div>
+          <div class="bubble" id="storyBubble">大家好，我是新来的。</div>
+        </div>
+        <div class="forecast-strip" id="storyStrip"></div>
+      </div>
+      <div class="tally" id="storyTally" style="opacity:0;transition:opacity .5s">
+        <div class="t">他报「90%」的次数<b id="tSays">0 次</b></div>
+        <div class="t">其中真下了雨的<b id="tRains">0 天</b></div>
+        <div class="t">实际下雨率<b id="tRate">—</b></div>
+        <div class="t">他的问题<b>过度自信</b></div>
+      </div>
+      <p style="margin-top:14px" id="storyPunch" hidden>
+        <b>校准</b> = 你说出的把握，和实际对上的频率一致。
+        报 90% 的事，长期看就该发生 90%——多吹的每一次牛，都会被大数定律记账。
+        AI 模型也一样：它说「我有 90% 把握」时，你可能真的该问一句：<b>你说 90% 的时候，历史上对了几次？</b>
+      </p>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="nextbtn" id="storyPlay">▶ 播放 12 天预报</button>
+        <button class="nextbtn" id="storyNext" style="display:none">去玩互动展品 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <div class="row"><label>他嘴上的把握</label><input type="range" id="tConf" min="50" max="100" step="1" value="90"><output id="tConfV">90%</output></div>
+        <div class="row"><label>实际正确率</label><input type="range" id="tAcc" min="0" max="100" step="1" value="60"><output id="tAccV">60%</output></div>
+        <div class="verdict"><span class="lamp" id="toyLamp"></span><span id="toyVerdict">—</span></div>
+        <div class="gapbar">
+          <div class="bar"><i id="gapFill" style="width:0"></i></div>
+          <div class="cap"><span>谦虚 0</span><span id="gapLbl">吹牛差 +30</span><span>0 吹牛</span></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          把握 − 实际 = <b style="color:var(--tx)">吹牛差</b>。差得越大，听他的人亏得越多：
+          按 90% 押注，长期却只有 60% 命中。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>校准地图：<span class="hl">对角线</span>上是诚实的人</h3>
+        <svg id="toyChart" viewBox="0 0 460 340" style="width:100%;max-width:560px;display:block;margin:0 auto"></svg>
+        <div class="dots">
+          <div class="dotrow"><span style="width:86px">声称会下雨</span><span class="cells" id="cellsC"></span></div>
+          <div class="dotrow"><span style="width:86px">真的下了雨</span><span class="cells" id="cellsA"></span></div>
+        </div>
+        <p style="font-size:12px;color:var(--tx2);line-height:1.8;margin-top:12px" id="toyNote"></p>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="hard">
+      <div class="ctl">
+        <div class="row"><label>样本数 n</label><input type="range" id="hN" min="100" max="2000" step="100" value="1000"><output id="hNV">1000</output></div>
+        <div class="row"><label>自信偏置</label><input type="range" id="hBias" min="-0.2" max="0.35" step="0.01" value="0.2"><output id="hBiasV">+0.20</output></div>
+        <div class="row"><label>预测噪声</label><input type="range" id="hNoise" min="0" max="0.15" step="0.01" value="0.06"><output id="hNoiseV">0.06</output></div>
+        <div class="row"><label>种子</label><input type="range" id="hSeed" min="1" max="99" step="1" value="7"><output id="hSeedV">7</output></div>
+        <div class="metric"><span>ECE 期望校准误差</span><b id="mECE">—</b></div>
+        <div class="metric"><span>MCE 最大校准误差</span><b id="mMCE">—</b></div>
+        <div class="metric"><span>Brier 分数</span><b id="mBrier">—</b></div>
+        <div class="metric"><span>总体准确率</span><b id="mAcc">—</b></div>
+        <div class="verdict" style="margin-top:12px"><span class="lamp" id="hLamp"></span><span id="hVerdict">—</span></div>
+        <p style="font-size:11px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          ECE = Σ (箱内样本占比) × |箱内准确率 − 箱内平均置信度|。
+          <b style="color:var(--tx)">完美校准 = 0</b>。Brier 衡量整体预测质量（越小越好）。
+          注意：把 n 拉小，一个校准完美的模型也会测出偏高的 ECE —— <b style="color:var(--tx)">审计本身也有噪声</b>。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>可靠性图（reliability diagram）</h3>
+        <svg id="hardChart" viewBox="0 0 560 430" style="width:100%;display:block"></svg>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizHard">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 06 —— 校准是「量化可靠」的标准答案，也是展品 02 认证地平线的前提。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

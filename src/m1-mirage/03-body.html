@@ -1,0 +1,106 @@
+<body>
+<style>
+.framebox{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fbf7ee;min-height:120px;display:flex;align-items:center;justify-content:center}
+.framebox iframe{width:100%;height:min(720px,58vh);border:0;display:block;background:#f5f1e7}
+/* 工具栏紧贴内嵌框上方，加载后立即可见（不再被 720px 的框顶到折叠线以下） */
+.framebox + .fbar,.fbar + .framebox{margin-top:10px}
+.fbar{margin-bottom:8px}
+.extlink{color:var(--cy);text-decoration:none;border-bottom:1px dashed var(--tx3)}
+.extlink:hover{color:#2b2822}
+</style>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 01</span>涌现与海市蜃楼</h1>
+    <span class="claim">「最自信的语气，编最离谱的事」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">一张会骗人的图</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">你来当检测器</span><span class="td">真假涌现 4 连测</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">完整检测工作台</span><span class="td">双判据 · 基准 · 指标</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>评测曲线突然跳了一下——<span class="hl">「涌现！」</span>……真的是吗？</h3>
+      <svg id="sChart" viewBox="0 0 700 300" style="width:100%;display:block"></svg>
+      <div class="verdict" style="justify-content:flex-start"><span class="lamp" id="sLamp"></span><span id="sText">点击「重跑 10 次」看真相。</span></div>
+      <div class="tctrl" style="margin-top:16px">
+        <button class="nextbtn" id="sPlay">▶ 展示「涌现」</button>
+        <button class="nextbtn ghost" id="sRerun" style="display:none">↻ 叠加重跑 10 次</button>
+        <button class="nextbtn" id="sNext" style="display:none">去当检测器 →</button>
+      </div>
+      <p style="margin-top:14px" id="sPunch" hidden>
+        <b>那道台阶在每一次重跑里都在换地方</b>——它不是能力的飞跃，是噪声碰巧排成的一次队形。
+        这就是「海市蜃楼」：单次评测里看起来像涌现，换个随机种子就消失。
+        识破它需要<b>双判据</b>：① 曲线形状确实是台阶而非斜坡（BIC 比较），
+        ② 台阶附近有<b>局部证据</b>——把台阶附近的点单独放大，噪声撑不起这么大一步。
+        完整检测器在第三层等你。
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <div class="row" style="margin-bottom:8px"><label>第 <output id="gRound" style="min-width:auto">1</output>/4 题</label></div>
+        <div class="row"><label>得分</label><output id="gScore" style="min-width:auto;color:var(--cy)">0</output></div>
+        <p style="font-size:12px;color:var(--tx2);line-height:1.8">
+          面前是一条<b style="color:var(--tx)">单次评测曲线</b>。判断它是：</p>
+        <div class="tctrl" style="margin-top:10px">
+          <button class="nextbtn" id="gReal">真涌现</button>
+          <button class="nextbtn ghost" id="gFake">海市蜃楼</button>
+        </div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:14px" id="gHint">
+          小技巧：想象这条曲线附近还有很多点被噪声埋住了——单次评测只给你一条线。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>案情 <span class="hl" style="font-family:var(--mono);font-size:12px" id="gMeta">CASE 1</span></h3>
+        <svg id="gChart" viewBox="0 0 700 320" style="width:100%;display:block"></svg>
+        <div class="verdict"><span class="lamp" id="gLamp"></span><span id="gVerdict">你的判断是？</span></div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="card">
+      <h3>完整检测工作台（<span class="hl">v1 原版收编</span>，内嵌运行）</h3>
+      <p style="margin-bottom:12px">严格双判据检测器 · Mirage 识破 · 基准对照 · bootstrap。
+        下方即原版工作台，可滚动、可交互。</p>
+      <div class="fbar" id="frameBar" hidden>
+        <span class="fbar-t">Emergence Lab · 内嵌运行</span>
+        <span class="fbar-tip">← → 切章</span>
+        <button class="fbtn fbtn-fs" type="button">⛶ 全屏</button>
+        <button class="fbtn fbtn-reload" type="button">↻ 重载</button>
+        <button class="fbtn fbtn-exit" type="button" hidden>✕ 退出全屏</button>
+      </div>
+      <div id="frameBox" class="framebox"><button class="nextbtn" id="loadFrame">▶ 加载完整实验室（约 176 KB）</button></div>
+      <p style="margin-top:10px">窗口太小？加载后用上面的 ⛶ 全屏 铺满视口（Esc 退出），或
+        <a class="extlink" href="vendor/emergence-lab.html" target="_blank">在新窗口打开完整版 ↗</a></p>
+    </div>
+    <div class="card quiz">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 01 —— 检测器内核来自展品馆外收藏《Emergence Lab》。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

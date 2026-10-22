@@ -1,0 +1,108 @@
+<body>
+<style>
+.framebox{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fbf7ee;min-height:120px;display:flex;align-items:center;justify-content:center}
+.framebox iframe{width:100%;height:min(720px,58vh);border:0;display:block;background:#f5f1e7}
+/* 工具栏紧贴内嵌框上方，加载后立即可见（不再被 720px 的框顶到折叠线以下） */
+.framebox + .fbar,.fbar + .framebox{margin-top:10px}
+.fbar{margin-bottom:8px}
+.extlink{color:var(--am);text-decoration:none;border-bottom:1px dashed var(--tx3)}
+.extlink:hover{color:#2b2822}
+.stamp{width:84px;height:84px;margin:0 auto;border:3px solid var(--gn);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--gn);font-size:12px;font-family:var(--mono);letter-spacing:2px;transform:scale(3) rotate(-18deg);opacity:0}
+.stamp.on{animation:stampin .5s cubic-bezier(.3,1.6,.6,1) forwards}
+@keyframes stampin{to{transform:scale(1) rotate(-10deg);opacity:1}}
+.beats{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.beat{display:flex;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;opacity:0;transform:translateY(8px);transition:all .4s}
+.beat.in{opacity:1;transform:none}
+.beat .bn{flex:none;font-family:var(--mono);font-size:10.5px;color:var(--am);border:1px solid rgba(176,116,28,.35);border-radius:5px;padding:2px 7px;margin-top:2px}
+.beat .bt{font-size:13px;line-height:1.8;color:var(--tx2)}
+.beat .bt b{color:var(--tx)}
+</style>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 02</span>认证地平线</h1>
+    <span class="claim">「考试通过了 ≠ 永远可靠」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">一张会过期的证书</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">证书值多少钱</span><span class="td">两个滑块看衰减</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">完整认证工作台</span><span class="td">5 定理 4 命题全算</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>今天，模型通过了<span class="hl">全部测试</span>——给它盖个章？</h3>
+      <div class="stamp" id="stamp">CERTIFIED</div>
+      <div class="beats" id="beats">
+        <div class="beat"><span class="bn">01</span><span class="bt"><b>盖章的瞬间：</b>测试覆盖了模型行为的一小段——论文叫它「受保护切口」。证书说的不是「模型可靠」，而是「<b>在这段切口内</b>，它的行为可被验证」。</span></div>
+        <div class="beat"><span class="bn">02</span><span class="bt"><b>想让证书管更远？</b>切口越长，能兜住它的证据衰减得越快——覆盖率按 <b>ρ<sup>ℓ</sup></b> 指数缩水（ρ=每步保真率）。这是论文定理 2 的直觉版。</span></div>
+        <div class="beat"><span class="bn">03</span><span class="bt"><b>而且不止一条钟在走：</b>证据会耗尽（定理 3）、写入预算会花光（定理 4）、外部扰动会把地板抬高（命题 14）。<b>三条线各给出一个上限，取最小的那个</b>——论文叫它认证地平线 ℓ*。</span></div>
+        <div class="beat"><span class="bn">04</span><span class="bt"><b>所以证书是会过期的：</b>它只保证到 ℓ* 为止。超出地平线的部分，谁也不能替它打包票——<b>可靠性不是状态，是要持续审计的过程。</b></span></div>
+      </div>
+      <svg id="sChart" viewBox="0 0 700 250" style="width:100%;display:block;margin-top:14px"></svg>
+      <div class="tctrl" style="margin-top:16px">
+        <button class="nextbtn" id="sPlay">▶ 开始盖章</button>
+        <button class="nextbtn" id="sNext" style="display:none">去拉滑块 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <div class="row"><label>每步保真率 ρ</label><input type="range" id="tRho" min="0.5" max="0.99" step="0.01" value="0.85"><output id="tRhoV">0.85</output></div>
+        <div class="row"><label>切口长度 ℓ</label><input type="range" id="tLen" min="1" max="30" step="1" value="6"><output id="tLenV">6</output></div>
+        <div class="verdict"><span class="lamp" id="tLamp"></span><span id="tVerdict">—</span></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          玩具公式 = 纯几何衰减 <b style="color:var(--tx)">ρ<sup>ℓ</sup></b>（直觉近似，非论文完整判定）。
+          想要证据代价、写入预算、扰动地板三条线的完整判定，去第三层。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>这张证书还剩多少<span class="hl">覆盖率</span>？</h3>
+        <svg id="tChart" viewBox="0 0 700 300" style="width:100%;display:block"></svg>
+        <p style="font-size:12px;color:var(--tx2);line-height:1.8;margin-top:6px" id="tNote"></p>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="card">
+      <h3>完整认证工作台（<span class="hl">v4 原版收编</span>，内嵌运行）</h3>
+      <p style="margin-bottom:12px">九模块 · 全局参数 · 地平线扫描 · 8 项自检 —— 页面上每个数字都是定理表达式现算的。</p>
+      <div class="fbar" id="frameBar" hidden>
+        <span class="fbar-t">认证地平线 · 内嵌运行</span>
+        <span class="fbar-tip">← → 切章</span>
+        <button class="fbtn fbtn-fs" type="button">⛶ 全屏</button>
+        <button class="fbtn fbtn-reload" type="button">↻ 重载</button>
+        <button class="fbtn fbtn-exit" type="button" hidden>✕ 退出全屏</button>
+      </div>
+      <div id="frameBox" class="framebox"><button class="nextbtn" id="loadFrame">▶ 加载完整工作台（约 180 KB）</button></div>
+      <p style="margin-top:10px">窗口太小？加载后用上面的 ⛶ 全屏 铺满视口（Esc 退出），或
+        <a class="extlink" href="vendor/horizon-workbench.html" target="_blank">在新窗口打开完整版 ↗</a></p>
+    </div>
+    <div class="card quiz">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 02 —— 硬核层论文：The Certification Horizon of Learned Computation。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

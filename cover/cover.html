@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI 失效博物馆 · 封面 1920×1080</title>
+<style>
+@font-face{font-family:'SerifSC';src:url('../shared/fonts/noto-serif-sc-chinese-simplified-700-normal.woff2') format('woff2');font-weight:700;font-display:block}
+@font-face{font-family:'SerifSC';src:url('../shared/fonts/noto-serif-sc-chinese-simplified-900-normal.woff2') format('woff2');font-weight:900;font-display:block}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{
+  font-family:'PingFang SC','Microsoft YaHei','Hiragino Sans GB',system-ui,sans-serif;
+  background:#f5f1e7;color:#2b2822;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============ 底图：金碧辉煌大厅 ============ */
+.hall{
+  position:absolute;inset:0;
+  background:url('bg-jinbi.png') center/cover no-repeat;
+  filter:contrast(1.09) saturate(1.26) brightness(.955);
+}
+/* 柔光纱：只压标题那一条，别把整座大厅洗白 */
+.hall::after{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 58% 27% at 50% 35%, rgba(255,254,251,.90) 0%, rgba(255,253,247,.50) 50%, rgba(255,252,246,0) 82%),
+    linear-gradient(180deg, rgba(104,80,44,.15) 0%, rgba(104,80,44,.04) 9%, rgba(104,80,44,0) 19%),
+    radial-gradient(ellipse 118% 30% at 50% 100%, rgba(246,241,230,.86) 0%, rgba(246,241,230,.30) 46%, rgba(246,241,230,0) 78%);
+}
+/* 四角压暗 */
+.vig{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 82% 75% at 50% 43%, rgba(255,255,255,0) 48%, rgba(120,96,60,.23) 100%);
+}
+/* 纸纹 */
+.grain{
+  position:absolute;inset:0;opacity:.055;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.55'/></svg>");
+}
+
+/* ============ 四角画框线 ============ */
+.frame{position:absolute;inset:38px;pointer-events:none}
+.frame i{position:absolute;width:54px;height:54px;border:1.5px solid rgba(154,116,26,.62)}
+.frame i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0}
+.frame i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0}
+.frame i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0}
+.frame i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0}
+
+/* ============ 内容层 ============ */
+.poster{position:absolute;inset:0;display:flex;flex-direction:column;padding:76px 112px 58px}
+.poster::before{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:300px;pointer-events:none;
+  background:linear-gradient(180deg, rgba(246,241,230,0) 0%, rgba(244,238,226,.42) 44%, rgba(242,235,222,.78) 100%);
+  z-index:-1;
+}
+
+/* 顶部行 */
+.top{display:flex;align-items:flex-start;justify-content:space-between}
+.brandmark{display:flex;align-items:center;gap:14px}
+.brandmark .seal-dot{width:9px;height:9px;border-radius:50%;background:#b0741c;box-shadow:0 0 0 4px rgba(176,116,28,.16)}
+.brandmark b{
+  font-size:16.5px;font-weight:700;letter-spacing:.34em;color:#7a5310;
+  text-transform:uppercase;
+}
+.brandmark span{font-size:16px;letter-spacing:.18em;color:#6b6355;font-weight:500}
+
+/* 印章 */
+.chop{
+  position:relative;width:108px;height:108px;flex:0 0 auto;
+  border:2.5px solid rgba(193,71,62,.72);border-radius:7px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transform:rotate(-7deg);opacity:.92;
+  box-shadow:inset 0 0 0 4px rgba(193,71,62,.10);
+}
+.chop::before{content:"";position:absolute;inset:7px;border:1px solid rgba(193,71,62,.42);border-radius:3px}
+.chop b{
+  font-family:'SerifSC',serif;font-weight:900;font-size:22px;line-height:1.16;
+  color:#b23f36;letter-spacing:.08em;writing-mode:vertical-rl;text-orientation:upright;
+}
+.chop i{
+  position:absolute;bottom:6px;left:0;right:0;text-align:center;
+  font-size:9px;letter-spacing:.26em;color:rgba(178,63,54,.80);font-style:normal;
+}
+
+/* 主标题区 */
+.headline{margin-top:40px;text-align:center}
+.kicker{
+  display:inline-flex;align-items:center;gap:16px;
+  font-size:19px;letter-spacing:.40em;color:#7a5310;font-weight:700;
+  margin-bottom:26px;
+}
+.kicker::before,.kicker::after{content:"";width:56px;height:1px;background:linear-gradient(90deg,rgba(176,116,28,0),rgba(176,116,28,.62))}
+.kicker::after{background:linear-gradient(270deg,rgba(176,116,28,0),rgba(176,116,28,.62))}
+
+h1{
+  font-family:'SerifSC',serif;font-weight:900;
+  font-size:163px;line-height:1.06;letter-spacing:.015em;
+  color:#1b1710;
+  text-shadow:0 1px 0 rgba(255,255,255,.78), 0 -1px 0 rgba(92,70,38,.14), 0 26px 54px rgba(96,72,36,.30);
+}
+h1 em{font-style:normal;color:#6b4a0e;position:relative}
+h1 em::after{
+  content:"";position:absolute;left:2%;right:2%;bottom:.08em;height:.055em;
+  background:linear-gradient(90deg,rgba(176,116,28,0),rgba(176,116,28,.72),rgba(176,116,28,0));
+}
+
+.sub{
+  margin-top:32px;font-size:33px;letter-spacing:.13em;color:#4a453c;font-weight:400;
+}
+.sub b{font-weight:700;color:#241f18}
+.sub .sep{color:rgba(154,116,26,.55);margin:0 14px}
+
+/* 钩子：贴在公告栏上的那张纸 */
+.quote{
+  width:fit-content;margin:26px auto 0;padding:12px 26px 13px;
+  background:linear-gradient(172deg,rgba(255,253,249,.96),rgba(251,246,236,.92));
+  border:1px solid rgba(120,96,58,.34);border-radius:4px;
+  box-shadow:0 18px 36px -20px rgba(80,58,28,.62), inset 0 1px 0 rgba(255,255,255,.92);
+  transform:rotate(-1.1deg);
+  display:flex;align-items:baseline;gap:1px;
+  font-size:22.5px;letter-spacing:.05em;color:#3d3529;
+}
+.quote .qtag{
+  font-size:12.5px;letter-spacing:.18em;color:#b23f36;font-weight:700;
+  border:1px solid rgba(193,71,62,.62);border-radius:3px;
+  padding:3px 8px 2px;margin-right:14px;white-space:nowrap;
+}
+.quote .qmark{font-family:'SerifSC',serif;color:rgba(154,116,26,.90);font-size:27px;font-weight:700;line-height:1}
+.quote .qby{margin-left:16px;font-size:16.5px;letter-spacing:.09em;color:#8a7f6c}
+
+/* 铭牌阵列：收窄居中，让两侧地面纹理透出来 */
+.grid{
+  margin-top:auto;margin-bottom:22px;align-self:center;width:1332px;flex:0 0 auto;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:20px;
+}
+.card{
+  position:relative;height:114px;padding:18px 22px 16px;
+  background:linear-gradient(158deg,rgba(255,254,251,.99),rgba(252,248,240,.96));
+  border:1px solid rgba(120,96,58,.34);border-radius:9px;
+  box-shadow:0 22px 40px -20px rgba(78,56,26,.66), 0 2px 0 rgba(255,255,255,.85) inset;
+  display:flex;flex-direction:column;justify-content:space-between;
+  overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,rgba(176,116,28,.92),rgba(176,116,28,.26));
+}
+/* 三展区配色：A 成因现场（琥珀）· B 检测侦探社（青）· C 保障实验室（绿） */
+.card.zA::before{background:linear-gradient(180deg,#b0741c,rgba(176,116,28,.24))}
+.card.zB::before{background:linear-gradient(180deg,#0e7f9c,rgba(14,127,156,.24))}
+.card.zC::before{background:linear-gradient(180deg,#1c8a5c,rgba(28,138,92,.24))}
+.card.zA .no{color:#a2691a}
+.card.zB .no{color:#0e7f9c}
+.card.zC .no{color:#1c8a5c}
+.card .no{
+  font-family:'SerifSC',serif;font-weight:700;font-size:13.5px;letter-spacing:.18em;color:#a17a2a;
+}
+.card .nm{
+  font-family:'SerifSC',serif;font-weight:700;font-size:31px;line-height:1.18;
+  color:#241f18;letter-spacing:.01em;white-space:nowrap;
+}
+.card .tag{
+  font-size:14.5px;letter-spacing:.15em;color:#776c5b;
+}
+
+/* 底部信息带 */
+.foot{
+  margin-top:24px;display:flex;align-items:center;justify-content:space-between;
+  padding-top:19px;border-top:1px solid rgba(120,96,58,.30);
+}
+.zones{display:flex;gap:13px}
+.zone{
+  font-size:18px;letter-spacing:.1em;color:#332e26;
+  padding:9px 19px;border:1px solid rgba(120,96,58,.42);border-radius:22px;
+  background:rgba(255,253,248,.88);
+}
+.zone i{font-style:normal;color:#a17a2a;font-weight:700;margin-right:8px;letter-spacing:.04em}
+.zone.zA{border-color:rgba(176,116,28,.50)} .zone.zA i{color:#b0741c}
+.zone.zB{border-color:rgba(14,127,156,.50)} .zone.zB i{color:#0e7f9c}
+.zone.zC{border-color:rgba(28,138,92,.50)}  .zone.zC i{color:#1c8a5c}
+.foot .meta{font-size:15.5px;letter-spacing:.16em;color:#7d7464}
+.foot .meta b{color:#3f3a32;font-weight:700;letter-spacing:.08em}
+</style>
+</head>
+<body>
+  <div class="hall"></div>
+  <div class="vig"></div>
+  <div class="grain"></div>
+  <div class="frame"><i></i><i></i><i></i><i></i></div>
+
+  <div class="poster">
+    <div class="top">
+      <div class="brandmark">
+        <span class="seal-dot"></span>
+        <b>Trust Lab</b>
+        <span>交互式展陈</span>
+      </div>
+      <div class="chop"><b>正在展出</b><i>2026</i></div>
+    </div>
+
+    <div class="headline">
+      <div class="kicker">常设展 · 八件失效标本</div>
+      <h1>AI 失效<em>博物馆</em></h1>
+      <div class="sub">
+        亲手抓住 AI 的每一次失手<span class="sep">·</span>故事 → 玩具 → 硬核
+      </div>
+      <div class="quote">
+        <span class="qtag">馆内公告</span><span class="qmark">“</span>据权威统计，95% 的 AI 模型是可靠的。<span class="qmark">”</span>
+        <span class="qby">— 馆长 小误（自己就会出错的模型）</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card zB"><span class="no">01</span><span class="nm">涌现与海市蜃楼</span><span class="tag">幻觉 / 编造</span></div>
+      <div class="card zC"><span class="no">02</span><span class="nm">认证地平线</span><span class="tag">认证 / 证据</span></div>
+      <div class="card zA"><span class="no">03</span><span class="nm">温度与幻觉放大器</span><span class="tag">采样 / 随机</span></div>
+      <div class="card zB"><span class="no">04</span><span class="nm">越狱攻防</span><span class="tag">安全 / 红队</span></div>
+      <div class="card zC"><span class="no">05</span><span class="nm">水印侦探</span><span class="tag">溯源 / 水印</span></div>
+      <div class="card zB"><span class="no">06</span><span class="nm">校准放大器</span><span class="tag">校准 / 置信</span></div>
+      <div class="card zA"><span class="no">07</span><span class="nm">对抗样本</span><span class="tag">对抗 / 扰动</span></div>
+      <div class="card zA"><span class="no">08</span><span class="nm">刷分机器人</span><span class="tag">指标 / 刷分</span></div>
+    </div>
+
+    <div class="foot">
+      <div class="zones">
+        <span class="zone zA"><i>A</i>成因现场</span>
+        <span class="zone zB"><i>B</i>检测侦探社</span>
+        <span class="zone zC"><i>C</i>保障实验室</span>
+      </div>
+      <div class="meta"><b>打开即玩</b>　无需注册 · 全部在浏览器内实时演算</div>
+    </div>
+  </div>
+</body>
+</html>

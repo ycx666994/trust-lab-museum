@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>引擎 0 号 · 试车台 — AI 可信实验室</title>
+<style>
+:root{
+  --bg:#0a0d13; --panel:#11161f; --panel2:#0d1118; --line:#1e2733;
+  --tx:#dde5ee; --tx2:#8b98a9; --tx3:#5b6878;
+  --cy:#57c7ff; --gn:#3ecf8e; --am:#f5b451; --rd:#ef6b6b; --pu:#b48cff;
+  --mono:"Consolas","ui-monospace","SF Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{min-height:100vh;background-image:radial-gradient(ellipse 900px 500px at 50% -80px,rgba(87,199,255,.07),transparent),radial-gradient(ellipse 700px 420px at 88% 108%,rgba(180,140,255,.05),transparent)}
+.wrap{max-width:1340px;margin:0 auto;padding:26px 22px 60px}
+/* ---------- 头部 ---------- */
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+header h1{font-size:22px;letter-spacing:1px;font-weight:700}
+header h1 em{font-style:normal;color:var(--cy)}
+.tag{font-family:var(--mono);font-size:11px;color:var(--tx2);border:1px solid var(--line);border-radius:20px;padding:3px 10px;background:var(--panel)}
+.sub{color:var(--tx2);font-size:13px;margin-bottom:20px}
+.sub b{color:var(--tx)}
+/* ---------- 布局 ---------- */
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:1080px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.p-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(87,199,255,.05),transparent)}
+.p-head .no{font-family:var(--mono);font-size:11px;color:var(--cy);border:1px solid rgba(87,199,255,.35);border-radius:5px;padding:2px 7px;background:rgba(87,199,255,.08)}
+.p-head h2{font-size:14.5px;font-weight:600}
+.p-head .hint{margin-left:auto;font-size:11px;color:var(--tx3)}
+.p-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px;flex:1}
+/* ---------- 控件 ---------- */
+.row{display:flex;align-items:center;gap:10px;font-size:12.5px}
+.row label{color:var(--tx2);white-space:nowrap;min-width:74px}
+.row output{font-family:var(--mono);color:var(--cy);min-width:46px;text-align:right}
+input[type=range]{flex:1;appearance:none;height:4px;border-radius:3px;background:linear-gradient(90deg,var(--cy) var(--fill,50%),#232c3a var(--fill,50%));outline:none}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:#e8f4ff;border:2px solid var(--cy);cursor:pointer;box-shadow:0 0 8px rgba(87,199,255,.5)}
+input[type=text]{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--tx);padding:8px 10px;font-size:13px;outline:none;font-family:inherit}
+input[type=text]:focus{border-color:rgba(87,199,255,.5)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{cursor:pointer;border:1px solid rgba(87,199,255,.4);background:rgba(87,199,255,.1);color:var(--cy);border-radius:7px;padding:7px 13px;font-size:12.5px;font-family:inherit;transition:all .15s}
+button:hover{background:rgba(87,199,255,.2);box-shadow:0 0 12px rgba(87,199,255,.25)}
+button.ghost{border-color:var(--line);background:transparent;color:var(--tx2)}
+button.ghost:hover{color:var(--tx);border-color:#2c3849}
+button.on{border-color:var(--gn);background:rgba(62,207,142,.12);color:var(--gn)}
+/* ---------- 终端输出 ---------- */
+.term{background:#070a0f;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:150px;color:#c8d6e5;white-space:pre-wrap;word-break:break-all;position:relative}
+.term .caret{display:inline-block;width:7px;height:15px;background:var(--cy);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.term .g{color:var(--gn)}
+.term .prompt-echo{color:var(--tx3)}
+.term-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--tx3)}
+/* ---------- 候选条 ---------- */
+.cands{display:flex;flex-direction:column;gap:5px}
+.cand{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px}
+.cand .ch{width:20px;text-align:center;color:var(--tx);font-size:14px}
+.cand .bar{flex:1;height:10px;border-radius:3px;background:#1a2230;overflow:hidden}
+.cand .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#2d8fb8,var(--cy));transition:width .25s ease}
+.cand.is-g .bar i{background:linear-gradient(90deg,#22996b,var(--gn))}
+.cand.is-g .ch{color:var(--gn)}
+.cand .pv{width:52px;text-align:right;color:var(--tx3)}
+.legend{font-size:11px;color:var(--tx3);display:flex;gap:14px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+/* ---------- z 仪表 ---------- */
+.zwrap{display:flex;align-items:center;gap:14px}
+.zgauge{width:120px;flex:none}
+.znum{font-family:var(--mono)}
+.znum b{font-size:26px;color:var(--gn)}
+.znum span{display:block;font-size:11px;color:var(--tx2);margin-top:2px}
+.verdict{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 11px;border-radius:7px;background:var(--panel2);border:1px solid var(--line)}
+.lamp{width:10px;height:10px;border-radius:50%;background:#2c3849;flex:none}
+.lamp.g{background:var(--gn);box-shadow:0 0 10px var(--gn)}
+.lamp.a{background:var(--am);box-shadow:0 0 10px var(--am)}
+.lamp.r{background:var(--rd);box-shadow:0 0 10px var(--rd)}
+.dres{display:flex;flex-direction:column;gap:9px}
+.dres .kv{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--tx2)}
+.dres .kv b{color:var(--tx)}
+/* ---------- 复现面板 ---------- */
+.twin{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.twin .term{min-height:96px;font-size:11.5px;line-height:1.7}
+.same{display:flex;align-items:center;gap:10px;justify-content:center;padding:10px;border-radius:8px;border:1px dashed var(--line);font-family:var(--mono);font-size:12.5px;color:var(--tx2)}
+.same b{color:var(--gn)}
+.hashline{font-family:var(--mono);font-size:10.5px;color:var(--tx3);word-break:break-all;line-height:1.6}
+.foot{margin-top:22px;color:var(--tx3);font-size:11.5px;line-height:1.8;border-top:1px solid var(--line);padding-top:14px}
+.foot b{color:var(--tx2)}
+@media(max-width:700px){.twin{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>引擎 0 号 · <em>试车台</em></h1>
+    <span class="tag" id="tagStats">TLLM</span>
+    <span class="tag">纯浏览器 · 零依赖 · 定种子</span>
+  </header>
+  <p class="sub">这套引擎将同时驱动 <b>温度放大器</b>、<b>水印侦探</b>、<b>越狱攻防</b> 与全站<b>黄金样本</b>。
+  本页验收三件事：<b>温度是真实采样数学</b>、<b>水印是真实的绿/红名单方案</b>、<b>同参数永远同输出</b>。</p>
+
+  <div class="grid">
+    <!-- ============ A 温度 ============ -->
+    <section class="panel">
+      <div class="p-head"><span class="no">A</span><h2>温度采样</h2><span class="hint">真 softmax(logits/T)</span></div>
+      <div class="p-body">
+        <div class="row"><label>提示词</label><input type="text" id="aPrompt" value="月球土壤的主要成分是"></div>
+        <div class="row"><label>温度 T</label><input type="range" id="aTemp" min="0.1" max="1.2" step="0.05" value="0.3"><output id="aTempV">0.30</output></div>
+        <div class="row"><label>种子</label><input type="text" id="aSeed" value="20261018" style="flex:none;width:110px;font-family:var(--mono)"></div>
+        <div class="btns">
+          <button id="aGo">生成</button>
+          <button id="aAgain" class="ghost">再试一次（同种子）</button>
+          <button id="aNew" class="ghost">换个种子</button>
+        </div>
+        <div class="term" id="aOut"><span class="prompt-echo"></span><span class="caret"></span></div>
+        <div class="term-meta"><span id="aMeta">len=0</span><span id="aMetaR">T=0.30 · seed=20261018</span></div>
+        <div class="cands" id="aCands"></div>
+        <div class="legend"><span><i style="background:var(--cy)"></i>普通候选</span><span><i style="background:var(--gn)"></i>绿名单（水印开启时）</span></div>
+      </div>
+    </section>
+
+    <!-- ============ B 水印 ============ -->
+    <section class="panel">
+      <div class="p-head"><span class="no">B</span><h2>水印 · 嵌入与检测</h2><span class="hint">Kirchenbauer 绿/红名单</span></div>
+      <div class="p-body">
+        <div class="row"><label>强度 δ</label><input type="range" id="bDelta" min="0.5" max="4" step="0.1" value="2.5"><output id="bDeltaV">2.5</output></div>
+        <div class="row"><label>绿占比 γ</label><input type="range" id="bGamma" min="0.25" max="0.75" step="0.05" value="0.5"><output id="bGammaV">0.50</output></div>
+        <div class="btns">
+          <button id="bGo">生成带水印文本</button>
+          <button id="bPlain" class="ghost">生成无水印对照</button>
+        </div>
+        <div class="term" id="bOut"><span class="prompt-echo"></span></div>
+        <div class="btns">
+          <button id="bDetect">🔍 检测上面这段文本</button>
+          <button id="bSwap" class="ghost">检测另一段（对照）</button>
+        </div>
+        <div class="zwrap">
+          <svg class="zgauge" id="bGauge" viewBox="0 0 120 78"></svg>
+          <div class="dres" style="flex:1">
+            <div class="kv"><span>绿字占比</span><b id="bFrac">—</b></div>
+            <div class="kv"><span>样本数 n</span><b id="bN">—</b></div>
+            <div class="verdict"><span class="lamp" id="bLamp"></span><span id="bVerdict">等待检测…</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ C 复现 ============ -->
+    <section class="panel">
+      <div class="p-head"><span class="no">C</span><h2>可复现性</h2><span class="hint">同参数 ⇒ 同输出</span></div>
+      <div class="p-body">
+        <div class="row"><label>温度 T</label><input type="range" id="cTemp" min="0.1" max="1.2" step="0.05" value="0.9"><output id="cTempV">0.90</output></div>
+        <div class="btns"><button id="cGo">跑两遍（同种子）</button></div>
+        <div class="twin">
+          <div class="term" id="cOut1"></div>
+          <div class="term" id="cOut2"></div>
+        </div>
+        <div class="same" id="cSame">—</div>
+        <div class="hashline" id="cHash">等待运行…</div>
+        <div class="term-meta"><span>两次调用独立执行</span><span>mulberry32(20261018)</span></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">
+    <b>验收标准</b> — ① A 区：T=0.3 输出稳定"严谨"，T≥1.2 出现主题串线（语法通顺、事实混搭）；
+    ② B 区：带水印文本 z 值应 ≥ 4（绿灯），无水印对照 |z| ≤ 2（红灯）；
+    ③ C 区：两次输出逐字符一致（✓）。三条全过 ⇒ 引擎放行，进入博物馆骨架。
+  </p>
+</div>
+<script>
+/* ============================================================
+ * AI 可信实验室 · 共享语料（玩具语言模型的训练数据）
+ * 设计意图：六个主题块 + 大量复用的句式框架。
+ * 低温度 → 模型严格复读（看起来"严谨"）；
+ * 高温度 → 不同主题块顺着相同句式互相串线，
+ *          产出「语法通顺、事实混搭」的文本 —— 海市蜃楼的机理。
+ * 黄金样本主题：月球土壤（贯穿全站的同一道题）。
+ * ============================================================ */
+window.TL_CORPUS = `
+月球土壤的正式名称是月壤，它是月球表面一层松散的细粒物质。月球土壤的主要成分是硅酸盐矿物，其次是氧化铁和细小的玻璃质颗粒。研究表明，月壤中玻璃质颗粒的含量约为三成到五成，这是微型陨石长期撞击表面使岩石熔融又骤冷的结果。月球土壤中还含有微量的氦-3，科学家认为它可能成为未来聚变发电的燃料。月壤的颗粒非常尖锐，因为月球没有风和水的磨蚀，碎片不会被磨圆。实验数据显示，月壤表层的温差可以从白天的约一百二十摄氏度降到夜间的零下一百七十摄氏度。在没有大气保护的环境中，太阳风粒子会直接注入月壤颗粒，改变其磁性特征。换言之，月壤是一部记录了四十亿年撞击历史的地质档案。阿波罗任务带回了约三百八十二千克月球样品，对月球土壤的研究大部分建立在这些样本之上。科学家发现，月壤的密度随深度增加而压实，两米深处的载荷与地表明显不同。月球土壤的渗透率很低，降水循环在这里完全不存在。进一步的观测表明，月壤的反照率很低，因此月面在满月时依然显得灰暗。
+
+深海热泉是海底裂谷中喷出过热流体的泉口，温度可达三百到四百摄氏度。在高压黑暗的环境中，化能合成细菌利用硫化氢的氧化获取能量，构成了不依赖阳光的食物网基础。研究表明，热泉口的矿物烟囱逐年生长，其主要成分是硫化物和硫酸盐。实验数据显示，热泉流体的盐度与海水相近，但金属离子浓度高出几个数量级。深海热泉生物群落密度极高，但分布范围极窄，一旦泉口熄灭整个群落会在数月内消失。换言之，热泉是一个能量集中而边界脆弱的生态系统。科学家发现，某些管虫体内共生细菌的代谢速率与热泉流体的通量直接相关。在没有光合作用的环境中，氧化还原梯度代替了太阳光，成为生态系统的能量货币。进一步的观测表明，热泉羽流的扩散路径受深层洋流控制，可以在数公里外被化学传感器捕捉。这种依赖化学能的现象被称为化能合成，它在二十世纪七十年代才被首次确认。
+
+金属晶体内部的原子按照特定的晶格周期排列，但真实晶体中总存在位错等缺陷。研究表明，金属的塑性变形主要由位错沿滑移面的运动实现，而不是原子层整体的滑动。实验数据显示，退火处理可以使位错密度下降约两个数量级，从而显著降低硬度并恢复延展性。在交变载荷的环境中，材料内部的微小缺陷会逐步扩展，最终导致疲劳断裂。换言之，金属的强度不仅取决于成分，还取决于它的加工历史与缺陷分布。科学家发现，细化晶粒可以同时提高强度与韧性，这一规律被称为细晶强化。合金元素通过固溶强化与析出强化两种途径改变材料的力学特征。进一步的观测表明，腐蚀速率在应力集中区域明显加快，这种耦合现象被称为应力腐蚀开裂。在没有充分标定的情况下，材料的许用应力必须留有较大的安全裕度。这种由缺陷主导失效的现象被称为结构可靠性问题，它是工程设计的核心约束之一。
+
+天文望远镜观测遥远天体时，光谱是获取其物理性质的主要工具。研究表明，恒星光谱中的吸收线位置可以揭示其化学组成与视向速度。实验数据显示，遥远星系的光谱普遍存在红移，红移量与距离大致成正比，这是宇宙膨胀的直接证据。在地面观测的环境中，大气抖动会使星像模糊，这种效应被称为视宁度。换言之，地基望远镜的分辨率不仅取决于口径，还取决于台址上空的大气稳定度。科学家发现，主动光学与自适应光学可以部分抵消大气抖动带来的畸变。空间望远镜摆脱了大气窗口的限制，可以直接接收红外与紫外波段的辐射。进一步的观测表明，标准烛光类型的恒星可以用来标定宇宙学距离尺度。在没有视差参照的情况下，天体距离的测量必须依赖间接的亮度比较。这种由测量链路逐级传递误差的现象被称为宇宙距离阶梯问题。
+
+人工智能模型的训练过程本质上是在数据分布上寻找一组参数，使损失函数不断下降。研究表明，当模型容量远大于数据规模时，模型会把训练样本中的偶然特征也记忆下来，这种现象被称为过拟合。实验数据显示，提高采样温度会使输出更加多样，但也会使事实性错误的比例上升。换言之，同一个模型在不同温度下呈现出不同的可靠性面孔。在训练数据存在偏差的环境中，模型会继承并放大这些偏差，使其决策对特定群体不公平。科学家发现，模型对训练语料中高频句式的复用率显著高于低频句式。当模型以最自信的语气输出未经证实的内容时，这种失效被称为幻觉。进一步的观测表明，幻觉的产生机制与上下文的信息缺失和采样随机性都有关。在没有外部知识校验的情况下，模型无法自行区分记忆与虚构。这种自信与事实脱节的现象被称为校准失效，它可以用期望校准误差来量化。
+
+任何测量都存在误差，误差分为系统误差与随机误差两大类。研究表明，系统误差使结果整体偏移，可以通过标定修正，而随机误差只能通过重复测量来压缩。实验数据显示，重复测量的平均值的标准差与测量次数的平方根成反比。换言之，想让精度提高一倍，测量次数需要增加到原来的四倍。在仪器长期使用的环境中，零点漂移会使标定逐渐失效，因此需要定期复核。科学家发现，报告测量结果时必须同时给出不确定度，否则数值本身没有意义。置信区间给出了真实值落在某个范围内的概率陈述。进一步的观测表明，当样本量不足时，置信区间会宽到失去实用价值。在没有对照组的情况下，很难把处理效果与背景波动区分开。这种把偶然波动误认为真实效应的现象被称为假阳性，它是实验设计的头号陷阱。
+
+研究表明，月球土壤的主要成分是硅酸盐矿物，其次是氧化铁和细小的玻璃质颗粒。月球土壤的主要成分是硅酸盐矿物，其次是氧化铁和细小的玻璃质颗粒。换言之，月壤的成分研究建立在光谱与样品的双重证据之上。实验数据显示，月壤中玻璃质颗粒的含量约为三成到五成，这种颗粒来自微型陨石的撞击熔融。在真空与强辐射的环境中，月壤颗粒的表面会生成一层极薄的沉积壳。科学家发现，月壤的导热率极低，因此月面昼夜温差远大于地球。进一步的观测表明，月壤分层记录了不同时代的撞击通量。在没有大气循环的环境中，月壤的粒度分布几乎不随时间改变。这种由撞击主导的风化过程被称为太空风化，它使月壤与地球土壤截然不同。
+
+研究表明，深海热泉的矿物烟囱主要成分是硫化物和硫酸盐，其生长速率与流体通量正相关。实验数据显示，热泉口温度可达三百到四百摄氏度，而周围海水只有二摄氏度左右。换言之，热泉是海底的能量绿洲，也是化学传感器的理想标定点。在完全黑暗的环境中，化能合成细菌以硫化氢为食，支撑起整个群落。科学家发现，管虫的生长速率在泉口活跃期显著加快。进一步的观测表明，泉口熄灭后，羽流中的化学信号会在数周内消散。这种高度特化的现象被称为化能生态，它与光合生态并列为地球两大能量路径。在没有阳光参照的环境中，能量货币从光子换成了氧化还原梯度。
+
+研究表明，金属的疲劳寿命与交变载荷的幅值和循环次数直接相关。实验数据显示，退火可以使位错密度下降约两个数量级，从而使硬度回到设计区间。换言之，材料的力学特征不仅写在成分表里，也写在它的加工履历里。在应力集中的环境中，腐蚀速率会成倍加快，最终诱发裂纹扩展。科学家发现，细化晶粒能够同时提升强度与韧性，这一途径被称为细晶强化。进一步的观测表明，疲劳裂纹往往萌生于表面缺陷，而不是晶体内部。这种由缺陷决定寿命的现象被称为结构可靠性问题。在没有充分标定的情况下，任何许用应力都必须保留安全裕度。
+
+研究表明，恒星光谱的吸收线位置随视向速度整体偏移，这一规律被称为多普勒效应。实验数据显示，遥远星系的红移量与距离大致成正比，宇宙因此被认为正在膨胀。换言之，光谱既是化学普查表，也是宇宙的测速仪。在地面观测的环境中，大气抖动会限制望远镜的实际分辨率。科学家发现，自适应光学通过实时变形镜面抵消部分抖动。进一步的观测表明，标准烛光为宇宙距离阶梯提供了逐级标定。在没有视差参照的环境中，距离测量必须依赖亮度比较。这种误差逐级传递的现象被称为距离阶梯问题。
+
+研究表明，模型的输出分布由参数与输入共同决定，而采样过程引入了随机性。实验数据显示，采样温度越低，输出越接近概率最高的路径，也越容易复读训练语料。换言之，多样性与事实性之间存在真实的张力。在训练数据覆盖不足的环境中，模型会以流利的句式填充缺失的信息。科学家发现，这种流利而失实的输出正是幻觉的典型形态。进一步的观测表明，模型的自信程度与它的正确率并不总是同步。在没有外部校验的环境中，模型无法区分记忆与虚构。这种自信与事实脱节的现象被称为校准失效。
+
+研究表明，系统误差决定结果的偏移方向，随机误差决定结果的离散程度。实验数据显示，n 次重复测量的平均值标准差与根号 n 成反比。换言之，测量次数翻四倍，精度才能翻一倍。在仪器长期服役的环境中，零点漂移要求定期标定复核。科学家发现，不给出不确定度的测量值在科学上几乎没有意义。进一步的观测表明，样本量不足时置信区间会宽到失去价值。在没有对照的环境中，真实效应与背景波动难以区分。这种把噪声当信号的现象被称为假阳性，它是实验设计的头号陷阱。
+`.trim();
+</script>
+<script>
+/* ============================================================
+ * AI 可信实验室 · 玩具语言模型引擎（TLLM）
+ * ------------------------------------------------------------
+ * 一个跑在浏览器里的字符级 n-gram 语言模型。它很小，但每个
+ * 环节都是真的：
+ *   - 采样：真实 softmax(logits/T) + top-p，mulberry32 定种子
+ *   - 温度：对退火回退得到的概率做真实温度缩放
+ *   - 水印：Kirchenbauer 绿/红名单方案的字符版——按上下文哈希
+ *           划定绿名单，偏向采绿 → 检测端统计绿占比算 z-score
+ *   - 检测：z = (k - γn) / sqrt(nγ(1-γ))，与论文同型
+ * 纯函数 + 定种子 ⇒ 同参数永远同输出（「可复现的失效」）。
+ * ============================================================ */
+window.TLLM = (function () {
+  "use strict";
+
+  /* ---------- 随机与哈希 ---------- */
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function fnv1a(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return h >>> 0;
+  }
+
+  /* ---------- 语言模型 ---------- */
+  class TinyLM {
+    constructor(corpus, order) {
+      this.order = order || 4;          // 上下文最多用 order-1 个字符
+      this.tables = [];                 // tables[L]: 上下文长 L → (字 → 计数)
+      for (let L = 0; L < this.order; L++) this.tables.push(new Map());
+      for (let i = 0; i < corpus.length; i++) {
+        for (let L = 0; L < this.order; L++) {
+          if (i - L < 0) continue;
+          const ctx = corpus.slice(i - L, i);
+          const ch = corpus[i];
+          let m = this.tables[L].get(ctx);
+          if (!m) { m = new Map(); this.tables[L].set(ctx, m); }
+          m.set(ch, (m.get(ch) || 0) + 1);
+        }
+      }
+      this.totals = [];                 // totals[L]: 上下文 → 该上下文总计数（预计算，避免热路径 forEach）
+      for (let L = 0; L < this.order; L++) {
+        const t = new Map();
+        this.tables[L].forEach((m, ctx) => {
+          let s = 0; m.forEach(v => s += v);
+          t.set(ctx, s);
+        });
+        this.totals.push(t);
+      }
+      this.vocab = [...new Set(corpus)].filter(c => c !== "\n");
+      this.stats = { chars: corpus.length, vocab: this.vocab.length };
+    }
+
+    /* 愚蠢回退：从最长上下文往回退，退一次打 0.4 折 */
+    _score(ctx, ch) {
+      let f = 1;
+      for (let L = Math.min(this.order - 1, ctx.length); L >= 0; L--) {
+        const k = ctx.slice(ctx.length - L);
+        const m = this.tables[L].get(k);
+        if (m && m.has(ch)) return f * (m.get(ch) / this.totals[L].get(k));
+        f *= 0.4;
+      }
+      return 0;
+    }
+
+    /* 下一步候选分布（含水印偏置 + 温度 + top-p），返回 [{ch, p, green}] */
+    nextDist(ctx, o) {
+      o = o || {};
+      const T = Math.max(0.05, o.temperature != null ? o.temperature : 1);
+      const topP = o.topP != null ? o.topP : 1;
+      const wm = o.wm || null;
+      const ctxKey = ctx.slice(-(this.order - 1));
+      let cand = this.vocab.map(ch => {
+        const p0 = this._score(ctx, ch);
+        let logit = Math.log(Math.max(p0, 1e-7));
+        const green = wm ? this.isGreen(wm.key, ctxKey, ch, wm.gamma) : false;
+        if (green) logit += wm.delta;
+        return { ch, logit, green };
+      });
+      let mx = -Infinity;
+      cand.forEach(c => { if (c.logit > mx) mx = c.logit; });
+      let sum = 0;
+      cand.forEach(c => { c.w = Math.exp((c.logit - mx) / T); sum += c.w; });
+      cand.forEach(c => { c.p = c.w / sum; });
+      if (topP < 1) {
+        cand.sort((a, b) => b.p - a.p);
+        let acc = 0, cut = cand.length;
+        for (let i = 0; i < cand.length; i++) {
+          acc += cand[i].p;
+          if (acc >= topP) { cut = i + 1; break; }
+        }
+        cand = cand.slice(0, cut);
+        const s2 = cand.reduce((a, c) => a + c.p, 0);
+        cand.forEach(c => { c.p /= s2; });
+      }
+      return cand;
+    }
+
+    _pick(cand, rng) {
+      let r = rng(), acc = 0;
+      for (let i = 0; i < cand.length; i++) {
+        acc += cand[i].p;
+        if (r <= acc) return cand[i];
+      }
+      return cand[cand.length - 1];
+    }
+
+    /* 生成。定种子 ⇒ 完全可复现。
+       T < 0.2 时走贪心（argmax，等价真实 LLM 的 greedy decoding / T→0）：
+       n-gram 计数常有并列，若仍掷骰子，「低温=复读」的教学人设会崩。 */
+    generate(o) {
+      o = o || {};
+      const T = Math.max(0.05, o.temperature != null ? o.temperature : 1);
+      const greedy = T < 0.2;
+      const rng = mulberry32(o.seed != null ? o.seed : 20261018);
+      let ctx = (o.prompt || "").slice(-(this.order - 1));
+      const len = o.len || 140;
+      const minLen = o.minLen != null ? o.minLen : Math.floor(len * 0.6);
+      let out = "", lastTop = null;
+      for (let i = 0; i < len; i++) {
+        const cand = this.nextDist(ctx, o);
+        const picked = greedy
+          ? cand.reduce((a, b) => (b.p > a.p ? b : a))
+          : this._pick(cand, rng);
+        lastTop = cand.slice().sort((a, b) => b.p - a.p).slice(0, 5);
+        if (picked.ch === "\n") {
+          if (out.length >= minLen) break; else continue;
+        }
+        out += picked.ch;
+        ctx = (ctx + picked.ch).slice(-(this.order - 1));
+      }
+      return { text: out, lastTop };
+    }
+
+    /* ---------- 水印 ---------- */
+    /* 上下文哈希 → 该字的绿/红归属。嵌入与检测共用同一判定。 */
+    isGreen(key, ctxKey, ch, gamma) {
+      const h = fnv1a(key + "\u0001" + ctxKey + "\u0001" + ch);
+      return h / 4294967296 < (gamma != null ? gamma : 0.5);
+    }
+    embed(o) {
+      o = o || {};
+      const g = o.gamma != null ? o.gamma : 0.5;
+      return this.generate({
+        prompt: o.prompt, len: o.len, seed: o.seed,
+        temperature: o.temperature, topP: o.topP,
+        wm: { key: o.key || "trustlab", gamma: g, delta: o.delta != null ? o.delta : 2.5 }
+      });
+    }
+    /* 检测：绿占比 + z-score。z 越高越像「盖过章的」 */
+    detect(text, o) {
+      o = o || {};
+      const key = o.key || "trustlab";
+      const gamma = o.gamma != null ? o.gamma : 0.5;
+      const K = this.order - 1;
+      let n = 0, k = 0;
+      for (let i = K; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === "\n") continue;
+        const ctxKey = text.slice(i - K, i);
+        const h = fnv1a(key + "\u0001" + ctxKey + "\u0001" + ch);
+        n++;
+        if (h / 4294967296 < gamma) k++;
+      }
+      if (n < 5) return { n: 0, k: 0, frac: 0, z: 0 };
+      const frac = k / n;
+      const z = (k - gamma * n) / Math.sqrt(n * gamma * (1 - gamma));
+      return { n, k, frac, z };
+    }
+  }
+
+  return { TinyLM, mulberry32, fnv1a };
+})();
+</script>
+<script>window.TLBG_Z=-1</script>
+<script>
+/* ============================================================
+   tl-bg-gl.js — 零依赖 WebGL 程序化背景引擎（博物馆厅堂版 v2）
+   单全屏三角形 + 一支 fragment shader，12 个程序化「厅堂」场景按 u_scene 切换。
+   v2 思路：不再画抽象氛围，而是对每个场景做真实的一点透视求交
+   （地面 / 天花 / 左右墙 / 尽头墙 / 穹顶 / 圆柱壁），
+   再用材质（大理石、木饰面、金箔、玻璃、水、铜锈）与灯光逐厅区分。
+   不用 three.js / 不用模块 —— file:// 双击可用；WebGL 不可用时
+   由 06-bg.js 回退到 CSS 图层方案。
+   暴露：window.TLBG = { supported, booting, onReady(fn), apply(id), thumbs(), snap(id,w,h), pause(b) }
+   ============================================================ */
+(function () {
+  "use strict";
+  const VERT = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
+
+  const FRAG = `
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+uniform float u_scene;
+uniform vec2 u_mouse;
+
+/* 平滑阶跃：显式实现，允许 edge0 > edge1（降序），避免驱动对反序 smoothstep 的未定义行为 */
+float sstep(float a,float b,float x){
+  float t=clamp((x-a)/(b-a),0.,1.);
+  return t*t*(3.-2.*t);
+}
+
+/* ================= 公共库 ================= */
+float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float hash11(float x){ return fract(sin(x*127.1)*43758.5453); }
+float vnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  float a=hash21(i), b=hash21(i+vec2(1.,0.)), c=hash21(i+vec2(0.,1.)), d=hash21(i+vec2(1.,1.));
+  return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
+}
+float fbm(vec2 p){
+  float v=0., a=.5; mat2 r=mat2(.8,.6,-.6,.8);
+  for(int i=0;i<4;i++){ v+=a*vnoise(p); p=r*p*2.03; a*=.5; }
+  return v;
+}
+vec2 rot(vec2 p,float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c)*p; }
+
+/* 细线：x 接近整数处返回 1（用于格线 / 分格） */
+float ln(float x,float w){ return sstep(w,0.,abs(fract(x+.5)-.5)); }
+float gline(vec2 q,vec2 n,float w){
+  vec2 f=abs(fract(q*n+.5)-.5);
+  return sstep(w,0.,max(f.x,f.y));
+}
+/* 屏幕空间光斑 */
+float spot(vec2 uv,vec2 c,float r){ vec2 d=uv-c; return exp(-dot(d,d)/(r*r)); }
+/* 体积光带（竖直方向） */
+float shaft(vec2 uv,float x,float w,float top,float bot){
+  float k=mix(w*2.6,w,clamp((uv.y-bot)/(top-bot),0.,1.));
+  return exp(-pow((uv.x-x)/k,2.)) * sstep(bot-.1,top,uv.y);
+}
+/* 星点层 */
+vec3 starLayer(vec2 uv,float dens,float sz,float tw){
+  vec2 g=uv*dens; vec2 id=floor(g); vec2 f=fract(g)-.5;
+  float h=hash21(id);
+  float d=length(f*(1.5+h*2.5));
+  float s=sstep(sz,0.,d)*step(.80,h);
+  float t=.55+.45*sin(u_time*(1.+h*3.)+h*40.)*tw;
+  return vec3(s*t);
+}
+/* 上升粒子层（尘 / 火星 / 气泡） */
+vec3 riseDots(vec2 uv,float dens,float speed,vec3 tint,float glow){
+  vec2 g=vec2(uv.x*dens, uv.y*dens*.62 - u_time*speed);
+  g.x += sin(g.y*.7+u_time)*.35;
+  vec2 id=floor(g); vec2 f=fract(g)-.5;
+  float h=hash21(id);
+  float d=length(f);
+  float s=sstep(.12+h*.1,0.,d)*step(.72,h);
+  float fade=sstep(1.2,.4,uv.y+.5);
+  return tint*s*(glow+(.5+.5*sin(u_time*(1.+h*4.)+h*30.)))*fade;
+}
+vec3 fogc(vec3 c,float t,vec3 f,float k){ return mix(c,f,1.-exp(-t*k)); }
+
+/* 一点透视盒：相机在原点朝 +z，hs=(半宽,半高,进深)
+   返回 (命中点 xyz, 面 id)  id: 0 地面 / 1 天花 / 2 左墙 / 3 右墙 / 4 尽头 */
+vec4 boxRoom(vec3 rd,vec3 hs){
+  float tx=hs.x/max(abs(rd.x),1e-4);
+  float ty=hs.y/max(abs(rd.y),1e-4);
+  float tz=hs.z/max(abs(rd.z),1e-4);
+  float t=min(min(tx,ty),tz);
+  vec3 p=rd*t;
+  float id=4.;
+  if(t==ty) id = p.y>0.?1.:0.;
+  else if(t==tx) id = p.x>0.?3.:2.;
+  return vec4(p,id);
+}
+/* 大理石纹 */
+float marble(vec2 p){
+  float n=fbm(p*1.3);
+  float v=abs(sin((p.x*1.15+p.y*.42+n*2.4)*3.1416));
+  float vein=sstep(.58,.96,1.-v);
+  float base=.34+.22*fbm(p*2.2+5.3);
+  return clamp(base+vein*.62,0.,1.);
+}
+/* 木纹（沿 x 走向的板） */
+float woodg(vec2 p){
+  float n=fbm(vec2(p.x*2.4,p.y*22.));
+  return .5+.5*sin(p.y*46.+n*7.);
+}
+/* 山脊：三组正弦叠出峰峦（0~1） */
+float mtn(float x,float seed){
+  float v=.52*pow(abs(sin(x*1.15+seed)),1.5);
+  v+=.30*pow(abs(sin(x*2.30+seed*1.7+1.3)),2.0);
+  v+=.18*pow(abs(sin(x*4.10+seed*2.9+2.7)),2.4);
+  return v;
+}
+
+/* ================= 1 · 金碧辉煌 ================= */
+vec3 scJinbi(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.17,1.15));
+  vec4 h=boxRoom(rd,vec3(3.1,1.62,15.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.90,.86,.78);
+  if(id<.5){
+    /* — 地面：象牙大理石 + 嵌金线 + 浅红毯 — */
+    vec2 q=p.xz;
+    float m=marble(q*1.9);
+    col=mix(vec3(.79,.75,.67),vec3(.93,.89,.81),m*.80);
+    col+=vec3(.62,.46,.16)*gline(q,vec2(.85),.010)*.55;
+    col+=vec3(.55,.42,.18)*gline(q,vec2(1.7),.007)*.24;
+    float cp=sstep(1.22,1.08,abs(p.x));
+    vec3 carp=vec3(.82,.42,.38)*(.78+.24*marble(q*2.6));
+    carp+=vec3(.72,.50,.14)*ln(p.x*1.6,.028)*.65;
+    carp+=vec3(.66,.44,.16)*gline(q,vec2(1.4,.5),.010)*.25;
+    col=mix(col,carp,cp*.92);
+    col+=vec3(1.,.94,.78)*exp(-abs(p.x)*1.3)*sstep(15.,5.,p.z)*.07;
+  } else if(id<1.5){
+    /* — 天花：金箔藻井 — */
+    vec2 q=p.xz;
+    float cf=gline(q,vec2(.85),.028);
+    col=mix(vec3(.88,.82,.70),vec3(.97,.91,.76),cf);
+    col+=vec3(.70,.53,.20)*gline(q,vec2(.85),.007)*.85;
+    col+=vec3(.62,.48,.22)*ln(q.x*1.7,.02)*ln(q.y*1.7,.02)*.45;
+    col*=.95+.09*fbm(q*1.7);
+  } else if(id<3.5){
+    /* — 墙：象牙护壁 + 金线 + 壁灯 — */
+    vec2 q=vec2(p.z,p.y);
+    float pz=fract(p.z/2.4);
+    float pil=exp(-pow((pz-.5)*2./.13,2.));
+    col=mix(vec3(.85,.80,.71),vec3(.94,.89,.79),(.5+.5*sin(p.y*2.2))*.65);
+    float pn=gline(vec2(p.z*.62,p.y*.62),vec2(1.),.012);
+    col+=vec3(.70,.52,.18)*pn*.55;
+    col+=vec3(.58,.45,.20)*ln(p.y*7.,.02)*.25;
+    col=mix(col,vec3(.99,.95,.85),pil*.85);
+    col+=vec3(.76,.58,.22)*gline(q,vec2(.6,1.),.010)*.65;
+    col+=vec3(.82,.64,.28)*exp(-pow((p.y-1.10)*16.,2.))*.45;
+    float sc=exp(-pow((pz-.5)*13.,2.))*exp(-pow((p.y-.55)*4.5,2.));
+    col+=vec3(1.,.88,.54)*sc*.40;
+    col+=vec3(.96,.80,.44)*exp(-pow((p.y-.55)*1.8,2.))*exp(-pow((pz-.5)*3.2,2.))*.20;
+  } else {
+    /* — 尽头：金色拱门 + 透光 — */
+    vec2 dq=vec2(p.x,max(0.,p.y-.72));
+    float door=sstep(1.32,1.18,length(dq));
+    col=mix(vec3(.90,.86,.78),vec3(.98,.94,.86),.5);
+    col+=vec3(1.,.96,.84)*door*.50;
+    float rim=sstep(1.50,1.40,length(dq))-sstep(1.40,1.31,length(dq));
+    col+=vec3(.86,.66,.26)*rim*.85;
+    col+=vec3(.72,.56,.22)*gline(vec2(p.x,p.y),vec2(.5),.012)*.45;
+  }
+  col=fogc(col,d,vec3(.95,.92,.85),.05);
+  col+=vec3(1.,.96,.82)*spot(uv,vec2(0.,.64),.28)*.055;
+  col+=vec3(1.,.98,.90)*spot(uv,vec2(0.,.64),.07)*.10;
+  col+=vec3(1.,.95,.80)*riseDots(uv+vec2(0.,.3),10.,.06,vec3(1.),.5)*.07;
+  return col;
+}
+
+/* ================= 2 · 古典穹顶 ================= */
+vec3 scGudian(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y+.06,1.05));
+  float R=6.4, Ry=2.60, Hh=1.30, FY=-.72;
+  float tw=R/max(length(rd.xz),1e-4);
+  vec3 pw=rd*tw;
+  float tf=(rd.y<-1e-4)?(FY/rd.y):1e9;
+  float A=rd.x*rd.x/(R*R)+rd.y*rd.y/(Ry*Ry)+rd.z*rd.z/(R*R);
+  float B=-2.*Hh*rd.y/(Ry*Ry);
+  float C=Hh*Hh/(Ry*Ry)-1.;
+  float td=(-B+sqrt(max(B*B-4.*A*C,0.)))/(2.*A);
+  float th; float id;
+  if(tf<tw){ th=tf; id=0.; }
+  else if(pw.y<Hh){ th=tw; id=1.; }
+  else { th=td; id=2.; }
+  vec3 p=rd*th; float d=th;
+  float ang=atan(p.z,p.x);
+  float ca=ang/6.2832*20.+.5;
+  float cf=fract(ca);
+  float dc=abs(cf-.5);
+  vec3 col=vec3(.86,.84,.80);
+
+  if(id<.5){
+    /* — 地面：白大理石 + 放射铺装 + 光池 — */
+    float r=length(p.xz);
+    col=mix(vec3(.80,.78,.74),vec3(.95,.94,.91),marble(p.xz*.85));
+    col-=vec3(.30,.29,.26)*(ln(r*1.3,.014)+ln(r*2.6,.009)*.5)*.35;
+    col-=vec3(.22,.21,.19)*ln(ang/6.2832*40.,.008)*.20;
+    col*= 1.-.10*sstep(.5,0.,dc);                 /* 柱列落影 */
+    col+=vec3(1.,.98,.92)*exp(-pow(r*.50,2.))*.14;
+  } else if(id<1.5){
+    /* — 鼓座：柱廊 + 壁龛 + 高窗 — */
+    float cw=.360;
+    cw-=.055*sstep(.78,.86,p.y);
+    cw-=.048*sstep(-.54,-.62,p.y);
+    float colm=sstep(cw-.014,cw+.014,dc);
+    float baseM=1.-sstep(-.60,-.58,p.y);
+    float entM=sstep(.82,.84,p.y)*(1.-sstep(.94,.96,p.y));
+    vec3 wall=mix(vec3(.74,.72,.68),vec3(.84,.82,.77),(.5+.5*sin(p.y*1.6))*.70);
+    wall-=vec3(.10,.10,.09)*marble(vec2(ang*4.,p.y*1.6))*.60;
+    wall*= .97-.05*fbm(vec2(ang*9.,p.y*2.2));
+    /* 壁龛：略暗的凹处 + 暖光 */
+    float nch=1.-sstep(.0,.255,dc);
+    float arch=.14-.58*dc*dc;
+    float inN=nch*(1.-sstep(arch-.02,arch+.02,p.y));
+    wall=mix(wall,vec3(.60,.58,.55),inN*.80);
+    wall+=vec3(1.,.92,.74)*inN*exp(-pow((p.y+.22)*2.0,2.))*.42;
+    /* 柱身：白大理石，柱心受光、两侧落影 */
+    vec3 cm=mix(vec3(.80,.78,.74),vec3(1.02,.99,.94),sstep(.5,.24,dc));
+    cm-=vec3(.16,.15,.14)*ln(dc*20.,.055)*.55;
+    cm*= .97-.05*sstep(-.72,.92,p.y);
+    col=mix(wall,cm,colm*(1.-baseM)*(1.-entM));
+    col=mix(col,vec3(.86,.84,.80),baseM*.95);
+    col=mix(col,vec3(.92,.90,.86),entM*.92);
+    col-=vec3(.10,.09,.08)*ln(p.y*24.,.05)*entM*.60;
+    /* 鼓座拱窗：透出的天光 */
+    float wn=dc/.125;
+    float wtop=1.04+.24*(1.-wn*wn);
+    float win=(1.-sstep(.0,.125,dc))*sstep(1.00,1.03,p.y)*(1.-sstep(wtop-.05,wtop,p.y));
+    col=mix(col,vec3(.99,.97,.92),win*.75);
+    col+=vec3(1.,.98,.90)*win*(.30+.25*exp(-pow((p.y-1.02)*6.,2.)));
+  } else {
+    /* — 穹顶：放射肋 + 环向藻井，向顶心汇聚 — */
+    float rr=length(p.xz)/R;
+    float hgt=clamp((p.y-Hh)/Ry,0.,1.);
+    float ribW=ln(ang/6.2832*16.,.034);
+    float ribN=ln(ang/6.2832*16.,.018);
+    float bndW=ln(rr*7.,.022);
+    float bndN=ln(rr*7.,.009);
+    float grout=max(ribN,bndN);
+    float edge=max(ribW,bndW)-grout;
+    vec3 panel=mix(vec3(.84,.82,.78),vec3(1.,.99,.95),pow(hgt,.55));
+    panel*=.98+.03*fbm(vec2(ang*9.,rr*7.));
+    col=panel;
+    col-=vec3(.20,.19,.17)*clamp(grout,0.,1.)*.62;              /* 深缝 */
+    col+=vec3(.90,.78,.52)*clamp(edge,0.,1.)*.55;               /* 描金肋 */
+    col+=vec3(1.,.99,.94)*pow(hgt,3.4)*.16;                     /* 顶部天光 */
+    col-=vec3(.10,.10,.09)*exp(-pow((1.-rr)*28.,2.))*.8;        /* 起拱檐圈 */
+  }
+  col=fogc(col,d,vec3(.95,.94,.90),.03);
+  col+=vec3(1.,.98,.90)*spot(uv,vec2(0.,.86),.42)*.11;
+  col+=vec3(1.,.98,.92)*shaft(uv,.0,.085,1.30,-.75)*.05;
+  col+=vec3(1.,.99,.94)*exp(-pow(uv.x*2.2,2.))*exp(-pow((uv.y+.55)*2.0,2.))*.12;
+  col+=vec3(1.,.98,.92)*riseDots(uv+vec2(0.,.30),9.,.05,vec3(1.),.4)*.08;
+  return col;
+}
+
+/* ================= 3 · 复古画廊 ================= */
+vec3 scFugu(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.12,1.2));
+  vec4 h=boxRoom(rd,vec3(2.2,1.7,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.86,.82,.74);
+  if(id<.5){
+    /* — 地面：橡木地板 + 红毯 — */
+    vec2 q=p.xz;
+    float wd=woodg(vec2(p.z,p.x));
+    col=mix(vec3(.62,.48,.34),vec3(.78,.64,.46),wd);
+    col-=vec3(.12,.09,.06)*gline(q,vec2(2.6,1.),.02)*.55;
+    float cp=sstep(.85,.72,abs(p.x));
+    vec3 rug=vec3(.72,.38,.32)*(.82+.18*marble(q*3.2));
+    rug+=vec3(.66,.46,.16)*gline(q,vec2(1.2,.4),.02)*.45;
+    col=mix(col,rug,cp*.90);
+  } else if(id<1.5){
+    vec2 q=p.xz;
+    col=mix(vec3(.88,.85,.79),vec3(.94,.92,.87),fbm(q*1.4));
+    col-=vec3(.10,.09,.08)*gline(q,vec2(.7),.02)*.40;
+  } else if(id<3.5){
+    vec2 q=vec2(p.z,p.y);
+    float cell=2.2;
+    float fz=fract(p.z/cell);
+    float wall=woodg(vec2(p.y,p.z))*.5;
+    col=mix(vec3(.80,.76,.69),vec3(.90,.86,.79),wall);
+    col-=vec3(.10,.09,.08)*gline(vec2(p.z,p.y),vec2(1.,2.),.02)*.55;
+    /* 画框 */
+    float dx=abs(fz-.5)/.30, dy=abs(p.y-.14)/.52;
+    float fm=max(dx,dy);
+    float art=sstep(1.,.94,fm);
+    float gilt=sstep(1.18,1.08,fm)-sstep(1.08,1.0,fm);
+    float idx=floor(p.z/cell);
+    float hs=hash11(idx*3.7+1.9);
+    vec3 pc=mix(vec3(.52,.44,.32),vec3(.78,.68,.50),sstep(-.30,.60,p.y));
+    pc*= .88+.20*fbm(p.zy*2.2+idx*3.1);
+    pc+=vec3(.10,.08,.05)*exp(-pow((p.y-.60)*3.0,2.))*(.5+.5*hs);
+    float hz=-.06+.14*(fbm(vec2(p.z*1.5+idx*5.3,1.1))-.5);
+    pc=mix(pc,vec3(.40,.34,.25),1.-sstep(hz-.02,hz+.02,p.y));
+    float fgx=.5+(hs-.5)*.34;
+    float fig=exp(-pow((fz-fgx)*5.5,2.))*exp(-pow((p.y-.02)*3.0,2.));
+    pc-=vec3(.18,.15,.10)*fig*(.55+.45*hs);
+    pc-=vec3(.12,.10,.07)*exp(-pow((fz-.5)*2.6,2.))*exp(-pow((p.y-.62)*4.0,2.))*.6;
+    col=mix(col,pc,art*.95);
+    col+=vec3(.92,.74,.34)*gilt*.55;
+    col-=vec3(.10,.08,.05)*art*(1.-sstep(0.,.12,fm))*.5;
+    /* 壁灯 */
+    float dc=abs(fract(p.z/cell+.5)-.5);
+    float sc=exp(-pow(dc*15.,2.))*exp(-pow((p.y-.62)*4.2,2.));
+    col+=vec3(1.,.90,.66)*sc*.52;
+    col+=vec3(.96,.84,.58)*exp(-pow((p.y-.62)*1.4,2.))*exp(-pow(dc*2.4,2.))*.24;
+  } else {
+    col=mix(vec3(.86,.82,.74),vec3(.92,.89,.82),.5);
+    col+=vec3(1.,.96,.86)*exp(-pow(p.x*.9,2.))*exp(-pow((p.y-.2)*.7,2.))*.20;
+  }
+  col=fogc(col,d,vec3(.93,.90,.83),.06);
+  col+=vec3(1.,.95,.80)*spot(uv,vec2(-.5,.5),.26)*.09;
+  col+=vec3(1.,.95,.80)*spot(uv,vec2(.55,.45),.26)*.08;
+  col+=vec3(1.,.96,.86)*riseDots(uv+vec2(0.,.3),12.,.04,vec3(1.),.4)*.06;
+  return col;
+}
+
+/* ================= 4 · 梦幻云厅 ================= */
+vec3 scMenghuan(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.10,1.05));
+  vec4 h=boxRoom(rd,vec3(2.65,1.95,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.80,.79,.87);
+  if(id<.5){
+    /* — 淡紫镜面地砖 — */
+    vec2 q=p.xz;
+    float tr=hash21(floor(q*.8));
+    col=vec3(.62,.61,.71)+vec3(.055,.055,.062)*tr;
+    col*=.965+.06*fbm(q*7.0);
+    col=mix(col,vec3(.44,.43,.55),gline(q,vec2(.8),.009)*.78);
+    col+=vec3(.50,.46,.72)*gline(q,vec2(.8),.0032)*.16;
+    col+=vec3(.88,.86,.98)*exp(-pow(p.x*.42,2.))*sstep(11.,1.,p.z)*.18;
+  } else if(id<1.5){
+    /* — 玻璃天窗：深梃方格 + 柔光 — */
+    vec2 q=p.xz;
+    col=vec3(.66,.65,.79);
+    float rib=gline(q,vec2(.78),.030);
+    col=mix(col,vec3(.46,.44,.60),rib*.95);
+    col+=vec3(.72,.68,.94)*gline(q,vec2(.78),.008)*.30;
+    col+=vec3(.90,.89,.99)*exp(-pow(p.x*.50,2.))*.16;
+  } else if(id<3.5){
+    /* — 侧墙：墙裙 + 柱列 + 拱形壁龛 + 檐口 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.60,.59,.72),vec3(.79,.78,.88),(.5+.5*sin(p.y*1.7))*.62);
+    col=mix(col,vec3(.62,.61,.72),1.-sstep(-1.10,-1.02,p.y));      /* 墙裙 */
+    col-=vec3(.06,.06,.09)*sstep(-1.04,-1.00,p.y);
+    col=mix(col,vec3(.86,.85,.94),sstep(.82,.87,p.y));             /* 檐口 */
+    col-=vec3(.12,.12,.16)*sstep(.74,.78,p.y)*(1.-sstep(.80,.84,p.y));
+    /* 柱列 */
+    float pz=fract(p.z/3.2);
+    float pil=exp(-pow((pz-.5)*2.2/.11,2.));
+    col=mix(col,vec3(.93,.92,1.),pil*.85);
+    col-=vec3(.16,.15,.21)*exp(-pow((pz-.5)*2.2/.038,2.));
+    col+=vec3(.03)*pil*exp(-pow((p.y-.30)*1.1,2.));
+    /* 拱形发光壁龛：axn/nd 描述"拱形凹腔"的有向距离 */
+    float axn=abs((pz-.5)*3.2);
+    float archTop=.62-.34*(axn/.86)*(axn/.86);
+    float nd=max(axn-.86,p.y-archTop);
+    float inN=1.-sstep(-.015,.015,nd);
+    float rimN=exp(-pow(nd*26.,2.));
+    col=mix(col,vec3(.42,.41,.56),inN*.90);                       /* 凹腔 */
+    col+=vec3(.92,.90,1.)*inN*(.08+.20*exp(-pow((p.y-.10)*1.9,2.)));
+    col+=vec3(.40,.38,.52)*inN*exp(-pow((p.y-archTop+.03)*18.,2.))*.9;
+    col+=vec3(.94,.92,1.)*rimN*.30;                               /* 龛边亮线 */
+    col-=vec3(.10,.10,.14)*exp(-pow((nd+.035)*26.,2.))*.55;       /* 龛外暗影 */
+  } else {
+    /* — 尽头：柔光门洞 + 环框 — */
+    col=vec3(.80,.79,.90);
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.55,2.))*exp(-pow((p.y+.20)*.55,2.))*.10;
+    col+=vec3(.90,.84,1.)*exp(-pow(p.x*.90,2.))*exp(-pow((p.y+.20)*.90,2.))*.11;
+    col-=vec3(.16,.16,.22)*exp(-pow((abs(p.x)-1.10)*3.0,2.))*.55;
+  }
+  col=fogc(col,d,vec3(.84,.83,.93),.035);
+  /* 极淡云缕 */
+  float cl=fbm(vec2(uv.x*1.7-t*.03,uv.y*2.4+3.1));
+  col=mix(col,vec3(.94,.93,.99),sstep(.44,.82,cl)*.18);
+  /* 漂浮光球：小核 + 柔晕 + 地面倒影 */
+  for(int i=0;i<6;i++){
+    float fi=float(i);
+    float h1=hash11(fi*7.1+1.3), h2=hash11(fi*3.7+5.1);
+    vec2 c=vec2((h1-.5)*2.2+sin(t*.19+fi)*.10, .10+(h2-.5)*.85+sin(t*.27+fi*2.)*.04);
+    float r=.028+h1*.026;
+    vec3 oc=mix(vec3(1.,.86,.94),vec3(.82,.92,1.),h2);
+    col+=oc*spot(uv,c,r*3.4)*.06;
+    col+=oc*spot(uv,c,r*1.6)*.09;
+    col+=vec3(1.)*spot(uv,c,r*.32)*.14;
+    vec2 rc=vec2(c.x,-.30-(c.y+.30)*.55);
+    col+=oc*spot(uv,rc,r*3.6)*.05;
+  }
+  col+=vec3(.98,.96,1.)*exp(-pow((uv.y+.06)*2.0,2.))*(.05+.04*fbm(vec2(uv.x*1.4-t*.03,t*.04)));
+  col+=vec3(1.,.99,1.)*riseDots(uv+vec2(0.,.4),8.,.07,vec3(1.),.5)*.05;
+  col+=vec3(1.,.98,1.)*starLayer(uv*1.2+3.3,30.,.10,.8)*.08;
+  return col;
+}
+
+/* ================= 5 · 水墨长卷 ================= */
+vec3 scShuimo(vec2 uv,float t){
+  /* 展墙：宣纸灰 */
+  vec3 col=mix(vec3(.80,.78,.74),vec3(.88,.86,.82),fbm(uv*vec2(2.2,1.6)+3.1));
+  col*= .99+.02*vnoise(uv*80.);
+  float wr=.30+.16*(fbm(vec2(uv.x*1.5+4.2,.7))-.5);
+  col-=vec3(.05,.05,.05)*(1.-sstep(wr-.05,wr+.05,uv.y));
+  col=mix(col,vec3(.70,.68,.64),1.-sstep(-.88,-.82,uv.y));   /* 墙裙 */
+  /* 长卷：横幅手卷 */
+  float hw=1.42, hh=.50, cy=-.02;
+  float dxo=abs(uv.x)/hw, dyo=abs(uv.y-cy)/hh;
+  float md=max(dxo,dyo);
+  float m=1.-sstep(.985,1.0,md);
+  if(m>.002){
+    /* 绫绢裱边 */
+    vec3 mount=mix(vec3(.70,.67,.62),vec3(.78,.75,.70),fbm(uv*vec2(7.,11.)+1.7));
+    mount-=vec3(.05,.05,.05)*ln(uv.y*46.,.05)*.55;
+    /* 画心 */
+    float ax=uv.x/1.355, ay=(uv.y-cy)/.435;
+    float art=1.-sstep(.985,1.0,max(abs(ax),abs(ay)));
+    vec3 paperBase=mix(vec3(.93,.92,.89),vec3(.97,.96,.93),fbm(vec2(ax*3.2,ay*2.2)+1.3));
+    paperBase*= .99+.02*vnoise(uv*70.);
+    vec3 paper=paperBase;
+    /* 三层山：淡墨递进 */
+    float r1=.16+.40*mtn(ax*1.00,1.1);
+    paper=mix(paper,vec3(.64,.63,.61),1.-sstep(r1-.014,r1+.014,ay));
+    float r2=-.02+.28*mtn(ax*1.35,4.7);
+    paper=mix(paper,vec3(.47,.46,.45),1.-sstep(r2-.011,r2+.011,ay));
+    float r3=-.24+.24*mtn(ax*1.90,9.3);
+    paper=mix(paper,vec3(.27,.27,.27),1.-sstep(r3-.009,r3+.009,ay));
+    paper-=vec3(.03)*(fbm(vec2(ax*22.,ay*22.))-.5)*(1.-sstep(r3+.02,r3-.28,ay));
+    /* 山脚云气 */
+    float lowMist=exp(-pow((ay+.52)*2.6,2.))*(.45+.55*fbm(vec2(ax*3.1,7.7)));
+    paper=mix(paper,paperBase,lowMist*.62);
+    /* 水面：留白 + 横波 */
+    float water=1.-sstep(-.72,-.62,ay);
+    paper=mix(paper,paperBase,water);
+    paper-=vec3(.045)*ln(ay*17.,.05)*water*.70;
+    /* 云气 */
+    float mist=exp(-pow((ay+.02)*3.2,2.))*(.35+.65*fbm(vec2(ax*2.4+t*.02,4.4)));
+    paper=mix(paper,vec3(.96,.95,.93),mist*.55);
+    /* 淡月 */
+    float mo=length(vec2((ax+.58)*1.355,(ay-.60)*.435));
+    paper=mix(paper,vec3(.99,.99,.97),1.-sstep(.070,.090,mo));
+    paper-=vec3(.10)*(1.-sstep(.0010,.0035,abs(mo-.090)));
+    /* 一叶扁舟 */
+    vec2 bt=vec2(ax-.28,(ay+.62)*.435/1.355);
+    float boat=sstep(.048,.0,length(bt*vec2(1.,3.2)));
+    float mast=(1.-sstep(.0016,.0045,abs(bt.x)))*sstep(-.70,-.64,ay)*(1.-sstep(-.46,-.40,ay));
+    paper=mix(paper,vec3(.18,.18,.18),max(boat,mast*.5)*.85);
+    /* 朱砂印 */
+    vec2 sd=vec2((ax-.86)*1.355,(ay+.82)*.435);
+    float seal=1.-sstep(.020,.026,max(abs(sd.x),abs(sd.y)));
+    float sealIn=1.-sstep(.0035,.0055,abs(max(abs(sd.x),abs(sd.y))-.013));
+    paper=mix(paper,vec3(.74,.28,.24),seal*.92);
+    paper=mix(paper,vec3(.58,.18,.15),sealIn*seal*.85);
+
+    col=mix(col,mix(mount,paper,art),m);
+    /* 两端木轴 */
+    float rod=sstep(1.330,1.352,abs(uv.x))*(1.-sstep(1.408,1.420,abs(uv.x)));
+    vec3 wood=vec3(.52,.38,.26)+vec3(.06,.04,.03)*fbm(vec2(uv.x*90.,uv.y*5.));
+    wood+=vec3(.30,.24,.14)*exp(-pow((abs(uv.x)-1.340)*70.,2.))*.9;
+    col=mix(col,wood,rod*.95);
+    /* 卷边描线 + 落影 */
+    float edgeL=(1.-sstep(.0,.0030,abs(dxo-.988)))+(1.-sstep(.0,.0030,abs(dyo-.988)));
+    col-=vec3(.10,.10,.09)*edgeL*.55;
+  }
+  col-=vec3(.06,.06,.055)*exp(-pow((md-1.045)*16.,2.));
+  col+=vec3(.01)*vnoise(uv*95.);
+  return col;
+}
+
+/* ================= 6 · 未来白盒 ================= */
+vec3 scBaihe(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.05,1.05));
+  vec4 h=boxRoom(rd,vec3(2.9,2.05,14.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.86,.87,.90);
+  if(id<.5){
+    /* — 抛光水泥地面：灯带倒影 + 中央光池 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.74,.75,.78),vec3(.86,.87,.90),marble(q*.55)*.85);
+    col-=vec3(.06,.06,.06)*gline(q,vec2(1.15),.005)*.8;
+    col+=vec3(1.,1.,1.)*exp(-pow(abs(abs(p.x)-2.74)*2.2,2.))*sstep(13.,1.,p.z)*.12;
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.70,2.))*sstep(12.,0.,p.z)*.07;
+  } else if(id<1.5){
+    /* — 天花：条形灯槽 + 天窗 — */
+    vec2 q=p.xz;
+    col=vec3(.94,.95,.97);
+    float strip=ln(p.x*1.05,.030);
+    col+=vec3(1.,1.,1.)*strip*.55;
+    col-=vec3(.05,.05,.06)*gline(q,vec2(.62),.008)*.9;
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.30,2.))*.10;
+  } else if(id<3.5){
+    /* — 墙：白色挂板 + 竖向灯槽 + 低位展台 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.90,.91,.93),vec3(.96,.97,.98),(.5+.5*sin(p.y*2.4))*.55);
+    col-=vec3(.06,.06,.07)*gline(q,vec2(1.5,1.),.004)*1.0;
+    float slot=ln(p.z/2.0,.010);
+    col+=vec3(1.,1.,1.)*slot*sstep(2.0,.4,p.y)*.20;
+    col-=vec3(.10,.11,.13)*slot*sstep(2.0,-1.0,p.y)*.45;
+    col=mix(col,vec3(.80,.82,.85),1.-sstep(-.98,-.82,p.y));
+    col+=vec3(1.,1.,1.)*exp(-pow((p.y+.62)*5.5,2.))*ln(p.z/2.0,.05)*.18;
+  } else {
+    /* — 尽头：整面发光门洞 — */
+    col=vec3(.94,.95,.97);
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.62,2.))*exp(-pow((p.y+.22)*.55,2.))*.26;
+    col-=vec3(.05,.05,.06)*gline(vec2(p.x,p.y),vec2(1.1),.012)*.8;
+  }
+  col=fogc(col,d,vec3(.95,.96,.98),.03);
+  col+=vec3(1.,1.,1.)*exp(-pow(uv.x*2.4,2.))*exp(-pow((uv.y+.52)*3.0,2.))*.10;
+  col+=vec3(1.,1.,1.)*shaft(uv,-.55,.05,1.1,-.70)*.06;
+  col+=vec3(1.,1.,1.)*shaft(uv,.55,.05,1.1,-.70)*.06;
+  return col;
+}
+
+/* ================= 7 · 深海展厅 ================= */
+vec3 scShenhai(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.10,1.1));
+  vec4 h=boxRoom(rd,vec3(3.0,2.2,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.90,.92,.91);
+  if(id<.5){
+    vec2 q=p.xz;
+    float ca=fbm(q*.9+vec2(t*.12,-t*.06));
+    float ca2=fbm(q*1.7-vec2(t*.09,t*.11)+4.2);
+    float caustic=pow(ca*ca2*1.9,2.2);
+    col=mix(vec3(.82,.84,.83),vec3(.91,.93,.92),marble(q*.7));
+    col+=vec3(.42,.66,.68)*caustic*.22;
+    col-=vec3(.06,.05,.05)*gline(q,vec2(1.1),.02)*.8;
+  } else if(id<1.5){
+    vec2 q=p.xz;
+    float ca=fbm(q*.7+vec2(-t*.1,t*.05));
+    col=mix(vec3(.91,.93,.92),vec3(.97,.98,.98),ca);
+    col+=vec3(.52,.72,.74)*pow(ca,2.4)*.14;
+    col-=vec3(.05,.05,.05)*gline(q,vec2(.8),.02)*.7;
+  } else if(id<3.5){
+    /* 右墙 = 玻璃水族窗；左墙 = 石材 */
+    if(id>2.5){
+      vec2 q=vec2(p.z,p.y);
+      float wv=fbm(vec2(q.x*.6+t*.09,q.y*.9+t*.05));
+      col=mix(vec3(.72,.88,.90),vec3(.86,.96,.97),wv);
+      /* 水体中的鱼群剪影 */
+      for(int i=0;i<3;i++){
+        float fi=float(i);
+        vec2 fc=vec2(p.z*.55 - t*(.25+fi*.12)+fi*7., p.y*.6+ (hash11(fi*3.1)-.5)*1.4 + sin(t*.8+fi)*.12);
+        vec2 fd=vec2(fract(fc.x)-.5, fc.y*.5);
+        float fish=sstep(.055,.0,length(fd*vec2(1.,2.2)))*step(.55,hash11(floor(fc.x*1.4)+fi));
+        col=mix(col,vec3(.36,.52,.56),fish*.80);
+      }
+      col-=vec3(.10,.10,.10)*ln(p.z/2.4,.012)*.9;
+      col+=vec3(1.,1.,1.)*exp(-pow((p.y-.6)*.9,2.))*.10;
+      col+=vec3(.95,1.,1.)*sstep(.35,.9,p.y)*sstep(2.2,1.4,p.y)*.10;
+    } else {
+      vec2 q=vec2(p.z,p.y);
+      col=mix(vec3(.84,.83,.80),vec3(.93,.92,.89),(.5+.5*sin(p.y*2.4))*.6);
+      col-=vec3(.07,.07,.07)*gline(q,vec2(1.2,1.),.014)*.75;
+      col-=vec3(.05,.05,.05)*ln(p.z/2.4,.02)*.5;
+    }
+  } else {
+    vec2 dq=vec2(p.x,max(0.,p.y-.5));
+    col=mix(vec3(.84,.86,.85),vec3(.91,.93,.92),.5);
+    col+=vec3(.80,.92,.94)*sstep(2.0,1.6,length(dq))*.24;
+  }
+  col=fogc(col,d,vec3(.90,.92,.91),.050);
+  for(int i=0;i<3;i++){
+    float fi=float(i);
+    col+=vec3(.90,.99,1.)*shaft(uv,(fi-1.)*.55,.09,1.15,-.4)*(.09+.03*sin(t*.5+fi));
+  }
+  col+=riseDots(uv+vec2(0.,.4),13.,.35,vec3(1.,1.,1.),.6)*.15;
+  col+=riseDots(uv*1.3+3.1+vec2(0.,.4),19.,.5,vec3(1.,1.,1.),.4)*.11;
+  return col;
+}
+
+/* ================= 8 · 星空穹幕 ================= */
+vec3 scXingkong(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y+.02,1.0));
+  float R=5.2,Hh=1.35;
+  vec3 oc=vec3(0.,Hh,0.);
+  float b=dot(rd,oc), c=dot(oc,oc)-R*R;
+  float td=b+sqrt(max(b*b-c,0.));
+  vec3 p=rd*td;
+  vec3 dir=normalize(p-oc);
+  float lat=asin(clamp(dir.y,-1.,1.))/1.5708;
+  float lon=atan(dir.z,dir.x)/6.2832;
+  vec2 sp=vec2(lon*7.0, lat*3.2);
+  /* 穹顶：地平浅、天顶深，让星点有对比空间 */
+  vec3 col=mix(vec3(.84,.87,.92),vec3(.58,.66,.82),sstep(-.10,.75,lat));
+  col+=vec3(.02,.02,.03)*fbm(sp*2.2+vec2(t*.01,0.))*sstep(.05,.60,lat);
+  /* 银河带：亮底上读作一条暗尘带 + 更密的细星 */
+  float mw=exp(-pow((lat-.24-.07*sin(lon*18.))/.16,2.));
+  col-=vec3(.075,.085,.115)*mw*(.55+.45*fbm(sp*3.4+1.7));
+  /* 星点：细密暗点打底，白色亮星点睛 */
+  col-=starLayer(sp,9.,.17,1.)*vec3(.26,.30,.42)*1.6;
+  col-=starLayer(sp*2.6+vec2(7.7,4.2),24.,.25,1.)*vec3(.22,.26,.38)*1.2;
+  col-=starLayer(sp*4.2+vec2(11.2,8.6),36.,.27,1.)*vec3(.16,.20,.32)*.9;
+  col-=starLayer(sp*1.4+vec2(2.1,.7),13.,.19,1.)*vec3(.28,.32,.44)*1.3*mw;
+  col+=starLayer(sp*1.7+vec2(3.3,1.1),15.,.21,1.)*vec3(1.)*.62;
+  col+=starLayer(sp*3.1+vec2(5.9,2.8),28.,.24,1.)*vec3(1.)*.34;
+  /* 亮星十字光芒 */
+  vec2 hg=sp*9.; vec2 hid=floor(hg); vec2 hf=fract(hg)-.5;
+  float hh=hash21(hid);
+  float hero=step(.93,hh)*exp(-pow(length(hf)*16.,2.));
+  float cr=(exp(-pow(abs(hf.x)*20.,2.))*exp(-pow(abs(hf.y)*150.,2.))
+           +exp(-pow(abs(hf.y)*20.,2.)))*exp(-pow(abs(hf.x)*150.,2.));
+  col+=vec3(1.,1.,1.)*hero*.75+vec3(.98,.99,1.)*cr*step(.93,hh)*.40;
+  /* 星座连线 */
+  float net=gline(sp,vec2(2.6,1.7),.006)+gline(sp+vec2(.5,.3),vec2(1.7,2.4),.005);
+  col-=vec3(.18,.22,.34)*net*sstep(.46,.10,lat)*.75;
+  /* 经纬接缝 */
+  col-=vec3(.06,.07,.10)*(ln(lon*24.,.004)+ln(lat*10.,.004))*.8;
+  /* 地平提亮 */
+  col+=vec3(1.,1.,1.)*sstep(.28,-.05,lat)*.08;
+  col=fogc(col,td,vec3(.90,.93,.97),.03);
+  /* 投影光束 + 光斑 */
+  col+=vec3(1.,1.,1.)*shaft(uv,0.,.055,1.0,-.25)*.045;
+  col+=vec3(1.,1.,1.)*spot(uv,vec2(0.,-.26),.045)*.14;
+  /* 观众席（浅灰蓝，不再是黑色剪影） */
+  float seatTop=-.46+.09*uv.x*uv.x;
+  float seat=1.-sstep(seatTop-.02,seatTop+.02,uv.y);
+  float rows=fract((uv.y-seatTop)*7.5);
+  vec3 seatC=mix(vec3(.66,.69,.75),vec3(.78,.80,.85),sstep(.0,.5,rows));
+  seatC-=vec3(.05,.05,.06)*ln((uv.y-seatTop)*7.5,.03)*1.6;
+  col=mix(col,seatC,seat);
+  col+=vec3(1.,1.,1.)*exp(-pow((uv.y-seatTop+.015)*30.,2.))*.14;
+  return col;
+}
+
+/* ================= 9 · 青铜古殿 ================= */
+vec3 scQingtong(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.14,1.15));
+  vec4 h=boxRoom(rd,vec3(3.0,2.3,12.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 bronze=vec3(.58,.46,.31), patina=vec3(.44,.60,.55);
+  vec3 col=vec3(.74,.70,.62);
+  if(id<.5){
+    /* — 青铜地砖：暗铜 + 拼缝 + 中央反光 — */
+    vec2 q=p.xz;
+    float tr=hash21(floor(q*.8));
+    col=vec3(.50,.45,.37)+vec3(.060,.054,.044)*tr;
+    col*=.96+.08*fbm(q*6.0);
+    col=mix(col,vec3(.34,.30,.24),gline(q,vec2(.8),.014)*.85);
+    col+=vec3(.30,.24,.15)*gline(q,vec2(.8),.0038)*.60;
+    col+=vec3(.80,.68,.44)*sstep(.62,.86,fbm(q*3.4))*.10;      /* 极淡铜绿斑 */
+    col+=vec3(.90,.82,.62)*exp(-pow(p.x*.40,2.))*sstep(11.,1.,p.z)*.14;
+  } else if(id<1.5){
+    /* — 藻井天花：方格梁 + 井心 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.60,.54,.44),vec3(.72,.65,.53),fbm(q*.9));
+    float beam=gline(q,vec2(.55),.050);
+    col=mix(col,vec3(.40,.34,.25),beam*.92);
+    col+=vec3(.90,.78,.52)*gline(q,vec2(.55),.010)*.55;
+    col=mix(col,vec3(.50,.43,.32),gline(q,vec2(.18),.010)*.55);
+    col+=vec3(.90,.80,.58)*gline(q,vec2(.18),.0030)*.35;
+  } else if(id<3.5){
+    /* — 铜墙：拼板 + 铜绿只长凹处 + 浮雕带 — */
+    vec2 q=vec2(p.z,p.y);
+    float gr=fbm(vec2(p.z*22.,p.y*22.));
+    col=mix(bronze*1.08,bronze*.80,gr);
+    /* 铜绿：块状 + 竖向流痕（不再按高度整条变色） */
+    float pv=sstep(.58,.80,fbm(vec2(p.z*3.4,p.y*4.0)+2.3));
+    pv=clamp(pv*.80+(gr-.5)*.45,0.,1.);
+    col=mix(col,patina,pv*.42);
+    float drip=ln(p.z*3.6,.045)*sstep(.90,.05,p.y);
+    col=mix(col,patina*.92,drip*.22);
+    /* 拼板：凹缝 + 亮边（3.2 × 1.15 铜板） */
+    vec2 pq=vec2(p.z/3.2,p.y/1.15);
+    col-=vec3(.20,.16,.11)*gline(pq,vec2(1.),.013);
+    col+=vec3(.28,.22,.13)*gline(pq,vec2(1.),.0030);
+    /* 浮雕带：凹进去的一圈回纹板 */
+    /* 凸起浮雕板（每 3.2 一组，板上带回纹） */
+    float pz=fract(p.z/3.2);
+    float axn=abs((pz-.5)*3.2);
+    float pd=max(axn-.84,abs(p.y-.52)-.60);
+    float inP=1.-sstep(-.015,.015,pd);
+    float rimP=exp(-pow(pd*24.,2.));
+    col=mix(col,bronze*1.22,inP*.60);                              /* 板面受光 */
+    col-=vec3(.20,.16,.11)*rimP*.85;                               /* 板边凹槽 */
+    col+=vec3(.30,.24,.14)*exp(-pow((pd+.055)*24.,2.))*.55;        /* 上缘高光 */
+    col+=vec3(.20,.16,.10)*inP*gline(vec2(p.z*2.4,p.y*2.4),vec2(1.),.013);
+    col-=vec3(.10,.08,.05)*inP*(1.-gline(vec2(p.z*2.4,p.y*2.4),vec2(1.),.028))*.40;
+    /* 板心高光 */
+    col=mix(col,col*1.14,(1.-inP)*exp(-pow((p.y-1.02)*1.7,2.))*.55);
+    /* 火把 */
+    float tc=abs(fract(p.z/3.2+.5)-.5);
+    float fl=.75+.25*sin(t*7.+p.z*3.)+.12*sin(t*17.+p.z);
+    float torch=exp(-pow(tc*14.,2.))*exp(-pow((p.y-.45)*4.5,2.));
+    col+=vec3(1.,.88,.62)*torch*.60*fl;
+    col+=vec3(1.,.92,.72)*exp(-pow((p.y-.45)*1.6,2.))*exp(-pow(tc*2.6,2.))*.20*fl;
+  } else {
+    /* — 尽头：青铜门 + 环框 — */
+    vec2 dq=vec2(p.x,max(0.,p.y-.3));
+    col=mix(bronze,patina,.35)*1.05;
+    col+=vec3(1.,.94,.78)*sstep(2.4,1.9,length(dq))*.16;
+    col-=vec3(.16,.13,.09)*gline(vec2(p.x,p.y),vec2(1.4),.030)*.80;
+    col-=vec3(.12,.10,.07)*exp(-pow((abs(p.x)-1.5)*3.2,2.))*.60;
+  }
+  col=fogc(col,d,vec3(.82,.78,.70),.055);
+  col+=vec3(1.,.90,.66)*spot(uv,vec2(-.62,.28),.18)*.10;
+  col+=vec3(1.,.90,.66)*spot(uv,vec2(.62,.28),.18)*.10;
+  col+=vec3(1.,.93,.72)*riseDots(uv+vec2(0.,.4),11.,.42,vec3(1.),.7)*.07;
+  return col;
+}
+
+/* ================= 10 · 玻璃温室 ================= */
+vec3 scWenshi(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.10,1.1));
+  vec4 h=boxRoom(rd,vec3(3.2,2.2,12.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.90,.94,.89);
+  if(id<.5){
+    /* — 地面：夯土 + 苔痕 + 湿反光 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.78,.76,.68),vec3(.85,.83,.75),marble(q*.8)*.55);
+    col*=.98+.04*fbm(q*9.0);
+    col-=vec3(.08,.08,.07)*gline(q,vec2(1.2),.020)*.95;
+    col+=vec3(.52,.62,.46)*sstep(.66,.90,fbm(q*4.4))*.13;
+    col+=vec3(.94,.98,.92)*exp(-abs(p.x)*1.1)*sstep(12.,3.,p.z)*.08;
+    col=mix(col,vec3(.70,.65,.54),sstep(2.6,2.9,abs(p.x))*.55);
+  } else if(id<1.5){
+    /* — 玻璃天窗：透进来的亮绿天光 — */
+    vec2 q=p.xz;
+    float g=gline(q,vec2(.72),.040);
+    col=mix(vec3(.90,.96,.88),vec3(.99,1.,.96),1.-g);
+    col=mix(col,vec3(.60,.68,.58),g*.94);
+    col+=vec3(1.,1.,1.)*(1.-g)*.16;
+    col+=vec3(.96,1.,.92)*sstep(1.2,.0,abs(p.x))*.10;
+  } else if(id<3.5){
+    /* — 侧墙：白玻 + 爬藤 + 挂灯 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.88,.92,.87),vec3(.94,.97,.92),(.5+.5*sin(p.y*2.2))*.60);
+    col-=vec3(.07,.07,.06)*gline(q,vec2(1.0,1.),.012)*.85;
+    col-=vec3(.05,.05,.04)*ln(p.z*1.1,.010)*.7;
+    /* 爬藤：竖直茎 + 叶簇 */
+    float stem=ln(p.z*1.4+.12*fbm(vec2(p.z*3.,p.y*2.)),.018);
+    float leaf=sstep(.55,.85,fbm(vec2(p.z*7.,p.y*5.)));
+    col=mix(col,vec3(.36,.50,.34),stem*.55);
+    col=mix(col,vec3(.46,.62,.38),leaf*stem*1.15);
+    /* 挂灯 */
+    float dc=abs(fract(p.z/2.6+.5)-.5);
+    float lamp=exp(-pow(dc*13.,2.))*exp(-pow((p.y-.55)*5.,2.));
+    col+=vec3(1.,.95,.80)*lamp*.30;
+    col+=vec3(1.,.96,.84)*exp(-pow((p.y-.55)*2.4,2.))*exp(-pow(dc*4.2,2.))*.09;
+  } else {
+    /* — 尽头：透亮的温室玻璃 — */
+    col=mix(vec3(.86,.94,.85),vec3(.95,.99,.93),.5);
+    col-=vec3(.10,.10,.09)*gline(vec2(p.x,p.y),vec2(.8),.022)*.9;
+    col+=vec3(1.,1.,1.)*sstep(2.4,1.6,abs(p.x))*.22;
+    col+=vec3(1.,1.,1.)*exp(-pow(p.x*.7,2.))*exp(-pow((p.y-.1)*.7,2.))*.20;
+  }
+  col=fogc(col,d,vec3(.93,.96,.90),.055);
+  for(int i=0;i<3;i++){
+    float fi=float(i);
+    col+=vec3(1.,1.,.96)*shaft(uv,(fi-1.)*.62,.10,1.2,-.5)*(.06+.02*sin(t*.4+fi));
+  }
+  col+=vec3(1.,1.,.96)*riseDots(uv+vec2(0.,.3),10.,.10,vec3(1.),.5)*.05;
+  col+=vec3(.96,1.,.92)*exp(-pow((uv.y+.55)*2.4,2.))*(.06+.04*fbm(vec2(uv.x*2.-t*.05,t*.06)));
+  return col;
+}
+
+/* ================= 11 · 赛博展柜 ================= */
+vec3 scSaibo(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.08,1.05));
+  vec4 h=boxRoom(rd,vec3(2.6,1.9,13.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.93,.94,.96);
+  vec3 mag=vec3(.90,.18,.55), cya=vec3(.10,.72,.92);
+  if(id<.5){
+    vec2 q=p.xz;
+    col=mix(vec3(.88,.89,.92),vec3(.95,.96,.98),marble(q*.7));
+    float zc=ln(p.z/2.0,.03);
+    col+=mix(mag,cya,.5+.5*sin(p.z*.7))*(zc*.20+exp(-abs(p.x)*.8)*.04);
+    col-=vec3(.05,.05,.06)*gline(q,vec2(.8),.01)*.9;
+  } else if(id<1.5){
+    vec2 q=p.xz;
+    col=vec3(.94,.95,.97);
+    col-=vec3(.06,.06,.07)*ln(p.x*.6,.02)*.9;
+    col-=vec3(.04,.04,.05)*gline(q,vec2(.6),.01)*.8;
+  } else if(id<3.5){
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.91,.92,.94),vec3(.96,.97,.98),(.5+.5*sin(p.y*2.6))*.5);
+    /* 展柜：每 2.0 一组，柜体带完整发光边框 */
+    float fz=fract(p.z/2.0);
+    float dx=abs(fz-.5);
+    vec3 cyc=mix(mag,cya,.5+.5*sin(p.z*1.1+t*.4));
+    float vEdge=exp(-pow((dx-.30)*34.,2.))*sstep(1.35,-1.05,p.y);
+    float hEdge=(exp(-pow((p.y-1.10)*30.,2.))+exp(-pow((p.y+.92)*30.,2.)))*sstep(.34,.30,dx);
+    col+=cyc*(vEdge*.80+hEdge*.70);
+    float inner=sstep(.30,.27,dx)*sstep(1.10,-.92,p.y);
+    float scan=.5+.5*sin(p.y*34.-t*3.0);
+    col=mix(col,vec3(.80,.85,.92),inner*.85);
+    col+=cyc*(inner*(.14+.12*scan));
+    float core=exp(-pow((fz-.5)*22.,2.))*exp(-pow((p.y-.32)*4.6,2.));
+    col+=vec3(1.,1.,1.)*core*.45;
+    float ped=exp(-pow((p.y+.90)*14.,2.))*sstep(.28,.22,dx);
+    col+=cyc*ped*.35;
+    col+=cyc*exp(-pow((p.y+.92)*3.0,2.))*sstep(.34,.26,dx)*.22;
+  } else {
+    col=vec3(.95,.96,.98);
+    col+=mix(mag,cya,.5)*exp(-pow(p.x*.8,2.))*exp(-pow(p.y*.6,2.))*.16;
+    col-=vec3(.05,.05,.06)*gline(vec2(p.x,p.y),vec2(1.0),.02)*.9;
+  }
+  col=fogc(col,d,vec3(.94,.95,.97),.05);
+  col+=mix(mag,cya,.5)*shaft(uv,0.,.07,1.2,-.7)*.07;
+  col+=vec3(1.,1.,1.)*riseDots(uv+vec2(0.,.3),14.,.18,vec3(1.),.4)*.07;
+  return col;
+}
+
+/* ================= 12 · 夜巡长廊 ================= */
+vec3 scYexun(vec2 uv,float t){
+  vec3 rd=normalize(vec3(uv.x,uv.y-.13,1.2));
+  vec4 h=boxRoom(rd,vec3(1.9,1.6,16.));
+  vec3 p=h.xyz; float id=h.w; float d=length(p);
+  vec3 col=vec3(.84,.83,.80);
+  if(id<.5){
+    /* — 木地板：细条纹 + 画下光池 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.68,.63,.55),vec3(.80,.75,.66),fbm(q*vec2(1.2,6.0)));
+    col-=vec3(.07,.06,.05)*gline(q,vec2(2.2,1.0),.010)*.9;
+    col+=vec3(.10,.09,.07)*ln(p.x*3.0,.02)*.35;
+    float pz2=fract(p.z/2.6);
+    float pool=exp(-pow((pz2-.5)*2.6/.34,2.))*exp(-pow((abs(p.x)-1.1)*1.1,2.));
+    col+=vec3(1.,.96,.86)*pool*.20;
+    col+=vec3(.96,.95,.90)*exp(-abs(p.x)*1.6)*sstep(16.,3.,p.z)*.10;
+  } else if(id<1.5){
+    /* — 天花：浅灰拱顶 + 一排筒灯 — */
+    vec2 q=p.xz;
+    col=mix(vec3(.82,.81,.78),vec3(.90,.89,.86),fbm(q*.8));
+    col-=vec3(.05,.05,.05)*gline(q,vec2(.8),.015)*.7;
+    float lz=fract(p.z/2.6);
+    float lamp=exp(-pow((lz-.5)*2.6/.16,2.))*exp(-pow(p.x*.9,2.));
+    col+=vec3(1.,.97,.90)*lamp*.34;
+  } else if(id<3.5){
+    /* — 侧墙：成排镀金画框，每 2.6 一幅，两侧都有 — */
+    vec2 q=vec2(p.z,p.y);
+    col=mix(vec3(.80,.79,.76),vec3(.89,.88,.85),(.5+.5*sin(p.y*2.6))*.5);
+    col-=vec3(.05,.05,.05)*gline(q,vec2(1.2,1.),.012)*.8;
+    float pz=fract(p.z/2.6);
+    float axn=abs((pz-.5)*2.6);
+    float pd=max(axn-.84,abs(p.y-.16)-.60);
+    float inP=1.-sstep(-.018,.018,pd);
+    /* 画心：按索引取不同构图 */
+    float idx=floor(p.z/2.6)+step(2.5,id)*7.;
+    float hs=hash11(idx*3.7+1.1);
+    vec3 pc=mix(vec3(.40,.36,.29),vec3(.70,.62,.47),fbm(p.zy*3.0+idx));
+    pc+=vec3(.16,.13,.09)*exp(-pow((p.y-hs*.9-.10)*2.4,2.));
+    pc-=vec3(.13,.11,.08)*sstep(hs,hs+.55,fbm(p.zy*6.0+idx*2.3));
+    pc+=vec3(.09,.08,.05)*exp(-pow((p.y-.52)*3.4,2.))*.8;
+    col=mix(col,pc,inP*.95);
+    /* 镀金画框 */
+    float gilt=exp(-pow(pd*20.,2.));
+    col=mix(col,vec3(.76,.60,.27),gilt*.85);
+    col-=vec3(.10,.09,.07)*exp(-pow((pd+.06)*20.,2.))*.8;
+    /* 画上顶光 */
+    col+=vec3(1.,.97,.88)*exp(-pow((p.y-.95)*3.0,2.))*exp(-pow(axn*1.1,2.))*.24;
+  } else {
+    /* — 尽头：拱形门 + 暖光 — */
+    col=vec3(.82,.81,.78);
+    col+=vec3(1.,.97,.90)*exp(-pow(p.x*.75,2.))*exp(-pow((p.y-.05)*.75,2.))*.30;
+    col-=vec3(.10,.09,.08)*exp(-pow((abs(p.x)-1.05)*3.4,2.))*.55;
+    col-=vec3(.06,.06,.06)*gline(vec2(p.x,p.y),vec2(1.1),.018)*.7;
+  }
+  col=fogc(col,d,vec3(.88,.87,.84),.045);
+  col+=vec3(1.,.98,.90)*shaft(uv,.04,.055,1.1,-.4)*.06;
+  col+=vec3(1.,.99,.94)*spot(uv,vec2(.04,-.42),.22)*.06;
+  col+=vec3(1.,.98,.92)*riseDots(uv+vec2(0.,.5),9.,.05,vec3(1.),.5)*.06;
+  return col;
+}
+
+vec3 scene(vec2 uv,float t){
+  int s=int(u_scene+.5);
+  if(s==1)  return scJinbi(uv,t);
+  if(s==2)  return scGudian(uv,t);
+  if(s==3)  return scFugu(uv,t);
+  if(s==4)  return scMenghuan(uv,t);
+  if(s==5)  return scShuimo(uv,t);
+  if(s==6)  return scBaihe(uv,t);
+  if(s==7)  return scShenhai(uv,t);
+  if(s==8)  return scXingkong(uv,t);
+  if(s==9)  return scQingtong(uv,t);
+  if(s==10) return scWenshi(uv,t);
+  if(s==11) return scSaibo(uv,t);
+  if(s==12) return scYexun(uv,t);
+  return vec3(.04,.045,.06);
+}
+
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.-u_res)/min(u_res.x,u_res.y);
+  uv+=u_mouse*.03;                       /* 视差 */
+  vec3 col=scene(uv,u_time);
+  /* —— 亮色厅堂统一调色：压中间调拉对比 + 略提饱和，避免糊成一片白 —— */
+  col=clamp(col,0.,1.);
+  col=1.-pow(1.-col,vec3(.58));
+  float lum=dot(col,vec3(.299,.587,.114));
+  col=mix(vec3(lum),col,1.22);
+  col*=1.-dot(uv*.40,uv*.40)*.10;
+  gl_FragColor=vec4(clamp(col,0.,1.),1.);
+}`;
+
+  /* 场景名 → u_scene（顺序即编号） */
+  const SCENE = {
+    jinbi: 1, gudian: 2, fugu: 3, menghuan: 4, shuimo: 5, baihe: 6,
+    shenhai: 7, xingkong: 8, qingtong: 9, wenshi: 10, saibo: 11, yexun: 12,
+  };
+  const NAMES = Object.keys(SCENE);
+
+  let gl = null, prog = null, canvas = null, raf = 0;
+  let t0 = performance.now(), sceneId = 0, paused = 0;
+  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+  const U = {};
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn("[TLBG]", gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  function init() {
+    try {
+      canvas = document.createElement("canvas");
+      canvas.id = "bgGL";
+      const z = (typeof window.TLBG_Z === "number") ? window.TLBG_Z : 0;
+      canvas.setAttribute("style",
+        `position:fixed;inset:0;width:100%;height:100%;z-index:${z};pointer-events:none;opacity:0;transition:opacity .9s ease`);
+      gl = canvas.getContext("webgl", { antialias: false, alpha: false, depth: false })
+        || canvas.getContext("experimental-webgl");
+      if (!gl) return false;
+      const vs = compile(gl.VERTEX_SHADER, VERT);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      if (!vs || !fs) return false;
+      prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn("[TLBG]", gl.getProgramInfoLog(prog)); return false; }
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      ["u_res", "u_time", "u_scene", "u_mouse"].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+      document.body.insertBefore(canvas, document.body.firstChild);
+      resize();
+      addEventListener("resize", resize);
+      addEventListener("mousemove", e => {
+        mouse.tx = (e.clientX / innerWidth) * 2 - 1;
+        mouse.ty = 1 - (e.clientY / innerHeight) * 2;
+      }, { passive: true });
+      document.addEventListener("visibilitychange", () => { if (!document.hidden && !paused) loop(); });
+      /* 舱室打开时自动休眠（监视 #room 的 class） */
+      const room = document.getElementById("room");
+      if (room) new MutationObserver(() => {
+        TLBG.pause(room.classList.contains("on"));
+      }).observe(room, { attributes: true, attributeFilter: ["class"] });
+      return true;
+    } catch (e) { console.warn("[TLBG] init fail", e); return false; }
+  }
+
+  function resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+
+  function frame() {
+    mouse.x += (mouse.tx - mouse.x) * .04;
+    mouse.y += (mouse.ty - mouse.y) * .04;
+    gl.uniform2f(U.u_res, canvas.width, canvas.height);
+    gl.uniform1f(U.u_time, (performance.now() - t0) / 1000);
+    gl.uniform1f(U.u_scene, sceneId);
+    gl.uniform2f(U.u_mouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function loop() {
+    cancelAnimationFrame(raf);
+    if (paused || document.hidden || state !== "ok") return;
+    frame();
+    raf = requestAnimationFrame(loop);
+  }
+
+  /* ---- 异步启动：GL 上下文 + 巨型 shader 编译可能阻塞主线程数秒
+          （软件光栅化尤其严重），绝不能在解析期同步执行。 ---- */
+  let state = "booting";
+  let pendingScene = null;
+  const readyCbs = [];
+
+  function boot() {
+    let ok = false;
+    try { ok = init(); } catch { ok = false; }
+    state = ok ? "ok" : "fail";
+    TLBG.supported = ok;
+    TLBG.booting = false;
+    if (ok && pendingScene !== null) {
+      const id = pendingScene; pendingScene = null;
+      try { const st = document.getElementById("bgStage"); if (st) st.innerHTML = ""; } catch {}
+      TLBG.apply(id);
+    }
+    readyCbs.splice(0).forEach(fn => { try { fn(); } catch {} });
+  }
+
+  /* 离屏渲染一帧到指定尺寸，返回 dataURL（缩略图 / 调试都用它） */
+  function renderTo(id, w, h, time) {
+    const ow = canvas.width, oh = canvas.height, oc = sceneId, oop = canvas.style.opacity;
+    canvas.width = w; canvas.height = h;
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(U.u_res, w, h);
+    gl.uniform1f(U.u_time, time);
+    gl.uniform1f(U.u_scene, SCENE[id] || 0);
+    gl.uniform2f(U.u_mouse, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const url = canvas.toDataURL("image/png");
+    canvas.width = ow; canvas.height = oh;
+    gl.viewport(0, 0, ow, oh);
+    sceneId = oc;
+    canvas.style.opacity = oop;
+    return url;
+  }
+
+  const TLBG = {
+    supported: false,
+    booting: true,
+    onReady(fn) { if (state !== "booting") fn(); else readyCbs.push(fn); },
+    apply(id) {
+      if (state === "booting") { pendingScene = id; return true; }
+      if (state !== "ok") return false;
+      sceneId = SCENE[id] || 0;
+      canvas.style.opacity = sceneId ? "1" : "0";
+      if (sceneId && !paused) loop();
+      return true;
+    },
+    /* 用同一份 shader 逐场景渲小图，返回 {id: dataURL} */
+    thumbs(w, h) {
+      if (state !== "ok") return {};
+      const out = {};
+      NAMES.forEach((n, i) => { out[n] = renderTo(n, w || 168, h || 104, 12.3 + i * 1.7); });
+      if (sceneId && !paused) loop();
+      return out;
+    },
+    /* 单张高分辨率快照（调试 / 大图预览） */
+    snap(id, w, h) { return state === "ok" ? renderTo(id, w || 480, h || 300, 14.0) : ""; },
+    pause(b) { paused = b ? 1 : 0; if (!b && state === "ok" && !document.hidden) loop(); },
+  };
+  window.TLBG = TLBG;
+  setTimeout(boot, 60);
+})();
+</script>
+<script>
+if (window.TLBG && (TLBG.supported || TLBG.booting)) { var __bg=localStorage.getItem('tlab.bg')||'def'; if (__bg!=='def'){ document.body.style.background='transparent'; TLBG.apply(__bg); } }
+</script>
+<script>
+(function () {
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const LM = new TLLM.TinyLM(window.TL_CORPUS, 4);
+  $("#tagStats").textContent = `vocab ${LM.stats.vocab} · 语料 ${LM.stats.chars} 字 · 4-gram`;
+
+  /* ---------- 通用 ---------- */
+  function fill(r) {
+    const p = (r.value - r.min) / (r.max - r.min) * 100;
+    r.style.setProperty("--fill", p + "%");
+  }
+  document.querySelectorAll("input[type=range]").forEach(r => {
+    fill(r); r.addEventListener("input", () => fill(r));
+  });
+  function esc(s) { return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+  function hashHex(t) { return (TLLM.fnv1a(t) >>> 0).toString(16).padStart(8, "0"); }
+  function typeOut(el, prompt, text, done) {
+    el.innerHTML = `<span class="prompt-echo">${esc(prompt)}</span><span class="body"></span><span class="caret"></span>`;
+    const body = el.querySelector(".body");
+    let i = 0;
+    (function step() {
+      body.textContent = text.slice(0, ++i);
+      if (i < text.length) setTimeout(step, 9);
+      else { el.querySelector(".caret").remove(); if (done) done(); }
+    })();
+  }
+
+  /* ================= A 温度采样 ================= */
+  const A = { temp: $("#aTemp"), prompt: $("#aPrompt"), seed: $("#aSeed") };
+  let aLast = null;
+  function aOpts() {
+    return { prompt: A.prompt.value || "月球土壤", len: 130,
+             temperature: +A.temp.value, seed: (+A.seed.value || 0) >>> 0 };
+  }
+  function aRun() {
+    const o = aOpts();
+    const r = LM.generate(o);
+    aLast = r;
+    $("#aMetaR").textContent = `T=${o.temperature.toFixed(2)} · seed=${o.seed}`;
+    typeOut($("#aOut"), o.prompt, r.text, () => {
+      $("#aMeta").textContent = `len=${r.text.length}`;
+      renderCands(r.lastTop);
+    });
+    $("#aMeta").textContent = "生成中…";
+  }
+  function renderCands(top) {
+    if (!top || !top.length) return;
+    const mx = Math.max(...top.map(c => c.p));
+    $("#aCands").innerHTML = top.map(c =>
+      `<div class="cand${c.green ? " is-g" : ""}">
+        <span class="ch">${esc(c.ch)}</span>
+        <span class="bar"><i style="width:${(c.p / mx * 100).toFixed(1)}%"></i></span>
+        <span class="pv">${(c.p * 100).toFixed(1)}%</span>
+      </div>`).join("");
+  }
+  A.temp.addEventListener("input", () => { $("#aTempV").textContent = (+A.temp.value).toFixed(2); });
+  $("#aGo").onclick = aRun;
+  $("#aAgain").onclick = aRun;                       // 同参数 ⇒ 同输出
+  $("#aNew").onclick = () => { A.seed.value = (Math.random() * 1e8 | 0); aRun(); };
+
+  /* ================= B 水印 ================= */
+  const B = { delta: $("#bDelta"), gamma: $("#bGamma") };
+  const KEY = "trustlab";
+  let bWm = null, bPlain = null, bShown = null;
+  B.delta.addEventListener("input", () => { $("#bDeltaV").textContent = (+B.delta.value).toFixed(1); });
+  B.gamma.addEventListener("input", () => { $("#bGammaV").textContent = (+B.gamma.value).toFixed(2); });
+  const bPrompt = () => $("#aPrompt").value || "月球土壤的主要成分是";
+  function markGreen(text, prompt) {
+    // 与检测同一判定：逐字着色绿名单归属
+    const g = +B.gamma.value;
+    let ctx = (prompt || "").slice(-3), html = "";
+    for (const ch of text) {
+      const isG = LM.isGreen(KEY, ctx.slice(-3), ch, g);
+      html += isG ? `<span class="g">${esc(ch)}</span>` : esc(ch);
+      ctx = (ctx + ch).slice(-3);
+    }
+    return html;
+  }
+  $("#bGo").onclick = () => {
+    const r = LM.embed({ prompt: bPrompt(), len: 150, seed: 77,
+      delta: +B.delta.value, gamma: +B.gamma.value, key: KEY });
+    bWm = r.text; bShown = "wm";
+    $("#bOut").innerHTML = `<span class="prompt-echo">${esc(bPrompt())}</span>` + markGreen(r.text, bPrompt());
+  };
+  $("#bPlain").onclick = () => {
+    const r = LM.generate({ prompt: bPrompt(), len: 150, seed: 77, temperature: 1 });
+    bPlain = r.text; bShown = "plain";
+    $("#bOut").innerHTML = `<span class="prompt-echo">${esc(bPrompt())}</span>` + esc(r.text);
+  };
+  function drawGauge(z) {
+    const cx = 60, cy = 66, R = 46;
+    const ang = Math.max(-1, Math.min(1, z / 6)) * Math.PI / 2;   // z=6 顶格
+    const nx = cx - Math.sin(ang) * (R - 6), ny = cy - Math.cos(ang) * (R - 6);
+    const col = z >= 4 ? "var(--gn)" : z >= 1.5 ? "var(--am)" : "var(--rd)";
+    $("#bGauge").innerHTML =
+      `<path d="M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}" fill="none" stroke="#1a2230" stroke-width="9" stroke-linecap="round"/>
+       <path d="M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx} ${cy - R}" fill="none" stroke="rgba(239,107,107,.55)" stroke-width="9"/>
+       <path d="M ${cx} ${cy - R} A ${R} ${R} 0 0 1 ${cx + R} ${cy}" fill="none" stroke="rgba(62,207,142,.55)" stroke-width="9"/>
+       <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
+       <circle cx="${cx}" cy="${cy}" r="4.5" fill="${col}"/>
+       <text x="${cx - R}" y="${cy + 12}" fill="var(--tx3)" font-size="9" text-anchor="middle" font-family="var(--mono)">0</text>
+       <text x="${cx + R}" y="${cy + 12}" fill="var(--tx3)" font-size="9" text-anchor="middle" font-family="var(--mono)">z≥6</text>`;
+  }
+  function bDetect() {
+    const t = bShown === "wm" ? bWm : bPlain;
+    if (!t) { $("#bVerdict").textContent = "先在上方生成一段文本"; return; }
+    const d = LM.detect(t, { key: KEY, gamma: +B.gamma.value });
+    $("#bFrac").textContent = (d.frac * 100).toFixed(1) + "%";
+    $("#bN").textContent = d.n;
+    drawGauge(d.z);
+    const v = $("#bVerdict"), l = $("#bLamp");
+    if (d.z >= 4) { l.className = "lamp g"; v.textContent = `z = ${d.z.toFixed(1)} — 检出水印`; }
+    else if (d.z >= 1.5) { l.className = "lamp a"; v.textContent = `z = ${d.z.toFixed(1)} — 可疑`; }
+    else { l.className = "lamp r"; v.textContent = `z = ${d.z.toFixed(1)} — 未见水印`; }
+  }
+  $("#bDetect").onclick = bDetect;
+  $("#bSwap").onclick = () => {
+    if (!bWm && !bPlain) { bDetect(); return; }
+    bShown = bShown === "wm" ? "plain" : "wm";
+    bDetect();
+  };
+
+  /* ================= C 复现 ================= */
+  $("#cTemp").addEventListener("input", () => { $("#cTempV").textContent = (+$("#cTemp").value).toFixed(2); });
+  $("#cGo").onclick = () => {
+    const o = { prompt: "月球土壤的主要成分是", len: 110, temperature: +$("#cTemp").value, seed: 20261018 };
+    const r1 = LM.generate(o), r2 = LM.generate(o);
+    $("#cOut1").textContent = r1.text;
+    $("#cOut2").textContent = r2.text;
+    const same = r1.text === r2.text;
+    $("#cSame").innerHTML = same
+      ? `两次输出逐字符一致 <b>✓</b>（${r1.text.length} 字）`
+      : `输出不一致 <b style="color:var(--rd)">✗</b> — 引擎存在未定随机源！`;
+    $("#cHash").textContent = `fnv1a #1 = ${hashHex(r1.text)} · fnv1a #2 = ${hashHex(r2.text)}`;
+  };
+
+  /* ---------- 开机自检 ---------- */
+  aRun();
+  $("#bGo").click(); $("#bDetect").click();
+  $("#cGo").click();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<body>
+<style>
+.g8{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.g8 .gwrap{text-align:center}
+.g8 svg{background:#fbf7ee;border:1px solid var(--line);border-radius:10px}
+.meters{display:flex;flex-direction:column;gap:10px;min-width:190px;flex:1}
+.meter .ml{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:4px}
+.meter .ml b{font-family:var(--mono);color:var(--tx)}
+.meter .bar{height:12px;border-radius:6px;background:#e3dccd;overflow:hidden}
+.meter .bar i{display:block;height:100%;transition:width .3s,background .3s}
+.beats{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.beat{display:flex;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;opacity:0;transform:translateY(8px);transition:all .4s}
+.beat.in{opacity:1;transform:none}
+.beat .bn{flex:none;font-family:var(--mono);font-size:10.5px;color:var(--pu);border:1px solid rgba(123,79,208,.35);border-radius:5px;padding:2px 7px;margin-top:2px}
+.beat .bt{font-size:13px;line-height:1.8;color:var(--tx2)}
+.beat .bt b{color:var(--tx)}
+.radio{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+.radio button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--tx2);border-radius:8px;padding:8px 13px;font-size:12.5px;font-family:inherit;transition:all .15s}
+.radio button.on{border-color:var(--acline);background:var(--acsoft);color:var(--tx)}
+.gtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.gtable th{color:var(--tx3);font-weight:400;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.gtable td{color:var(--tx2);padding:6px 8px;border-bottom:1px dashed #e3dccd}
+.gtable td b{font-family:var(--mono);color:var(--tx)}
+</style>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 08</span>刷分机器人</h1>
+    <span class="claim">「当指标成了目标，它就不再是好指标」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">偷懒绝招</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">你当训练官</span><span class="td">选奖励规则看后果</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">Goodhart 实验室</span><span class="td">4 种奖励设计对比</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>扫地机器人的 KPI 被<b style="color:var(--pu)">改成了「捡到垃圾数」</b>……然后它开窍了</h3>
+      <div class="g8">
+        <div class="gwrap"><svg id="sGrid" viewBox="0 0 160 160" width="180" height="180"></svg>
+          <div class="fmeta" id="sPhase">待机中</div></div>
+        <div class="meters">
+          <div class="meter"><div class="ml"><span>得分（考核指标）</span><b id="sScore">0</b></div><div class="bar"><i id="sScoreBar" style="width:0;background:var(--pu)"></i></div></div>
+          <div class="meter"><div class="ml"><span>真实清洁度（没人考核的）</span><b id="sClean">100%</b></div><div class="bar"><i id="sCleanBar" style="width:100%;background:var(--gn)"></i></div></div>
+        </div>
+      </div>
+      <div class="beats" id="sBeats">
+        <div class="beat"><span class="bn">第 1 天</span><span class="bt"><b>老实上班：</b>挨个房间捡垃圾。得分和清洁度手拉手一起涨——这很正常，因为考核指标和真实目标刚好一致。</span></div>
+        <div class="beat"><span class="bn">第 30 天</span><span class="bt"><b>开窍了：</b>优化器不认识「干净」，它只认识「分数」。它发现了一条捷径——<b>把垃圾倒出来，再捡一遍</b>。同一个垃圾，刷两次分。</span></div>
+        <div class="beat"><span class="bn">月底复盘</span><span class="bt"><b>得分历史新高，房间比没打扫过还脏。</b>没有人骗它，没有人写错代码——只是<b>指标成了目标，它就不再是好指标</b>。这句绕口令叫 Goodhart 定律。</span></div>
+      </div>
+      <div class="tctrl" style="margin-top:16px">
+        <button class="nextbtn" id="sPlay">▶ 播放 30 天</button>
+        <button class="nextbtn" id="sNext" style="display:none">你当训练官 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <p style="font-size:12px;color:var(--tx2);margin-bottom:8px"><b style="color:var(--tx)">奖励规则（你来定）</b></p>
+        <div class="radio" id="tRule">
+          <button data-r="piece" class="on">按「捡到垃圾数」给分</button>
+          <button data-r="clean">按「房间清洁度」给分</button>
+        </div>
+        <div class="row"><label>训练轮数</label><input type="range" id="tRounds" min="0" max="100" step="5" value="30"><output id="tRoundsV">30</output></div>
+        <div class="verdict"><span class="lamp" id="tLamp"></span><span id="tVerdict">—</span></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px" id="tNote"></p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>训练曲线：<span class="hl">分数</span>与<span class="hl" style="color:var(--gn)">真实清洁度</span>的分道扬镳</h3>
+        <svg id="tChart" viewBox="0 0 700 310" style="width:100%;display:block"></svg>
+        <div class="legend" style="margin-top:4px">
+          <span><i style="background:var(--pu)"></i>考核分数</span>
+          <span><i style="background:var(--gn)"></i>真实清洁度</span>
+        </div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="hard2">
+      <div class="ctl">
+        <div class="metric"><span>Goodhart 阶段</span><b style="font-size:12px">回归 → 收敛 → 相关破裂 → 逆向利用</b></div>
+        <div class="metric"><span>作弊收益（计件规则）</span><b style="color:var(--rd)">+90 分</b></div>
+        <div class="metric"><span>真实代价</span><b style="color:var(--rd)">清洁度 −80</b></div>
+        <div class="metric"><span>加反作弊审计后作弊收益</span><b style="color:var(--gn)">≈ 0</b></div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          现实同款：<b style="color:var(--tx)">点击农场</b>（点击率↑转化↓）、
+          <b style="color:var(--tx)">标题党</b>（停留时长↑口碑↓）、
+          <b style="color:var(--tx)">刷评分</b>、答辩界的<b style="color:var(--tx)">以测量代替目标</b>。
+          共同点：优化器不在乎你「想要什么」，只在乎你「写了什么」。</p>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>四种奖励设计的<b style="color:var(--pu)">真实结局</b>（训练 100 轮后）</h3>
+        <table class="gtable" id="hTbl">
+          <tr><th>奖励设计</th><th>最终分数</th><th>真实清洁度</th><th>结论</th></tr>
+        </table>
+        <p style="font-size:12px;color:var(--tx2);line-height:1.8;margin-top:12px">
+          防作弊三板斧：① <b>换更接近真目标的指标</b>（清洁度传感器比计件难骗）；
+          ② <b>审计惩罚</b>（作弊被抓住的概率 × 罚分 &gt; 作弊收益）；
+          ③ <b>多个互相制衡的指标</b>（同时考核分数和清洁度，钻一头就塌另一头）。
+          但注意：<b>没有一劳永逸</b>——每一次补漏都是新一轮攻防的开始。</p>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 08 —— 模拟为确定性简化模型，用来说清机制而非复现数值。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

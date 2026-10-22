@@ -1,0 +1,16 @@
+# 开发中间产物
+_dev/cover/
+_dev/_intro*.md
+*.bak
+*.tmp
+*.log
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+*.swp

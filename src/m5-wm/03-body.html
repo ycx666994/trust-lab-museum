@@ -1,0 +1,134 @@
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 回博物馆</a>
+    <h1><span class="no">展品 05</span>水印侦探</h1>
+    <span class="claim">「一句话的指纹：看不见，但统计看得见」</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-layer="story"><span class="tn">① STORY · 语音导览</span><span class="tt">两段一样的文字</span><span class="td">30 秒，只看</span></button>
+    <button class="tab" data-layer="toy"><span class="tn">② PLAY · 互动展品</span><span class="tt">盖章、检测、洗水印</span><span class="td">亲手攻防</span></button>
+    <button class="tab" data-layer="hard"><span class="tn">③ LAB · 实验室</span><span class="tt">检出率扫描</span><span class="td">多长才够可信？</span></button>
+  </div>
+
+  <!-- ================= ① 故事 ================= -->
+  <section class="layer on" id="ly-story">
+    <div class="card">
+      <h3>同一个模型、同一道题，<span class="hl">两段文字</span>——其中一段藏着指纹</h3>
+      <p style="margin-bottom:14px">左：普通生成。右：生成时模型在「意思一样的候选字」里<b>偏爱秘密绿名单</b>。字面几乎看不出区别。</p>
+      <div class="toy">
+        <div>
+          <div class="fmeta" style="margin-bottom:6px">普通生成 · 无水印</div>
+          <div class="term" id="wPlain" style="min-height:170px"></div>
+          <div class="verdict"><span class="lamp" id="pLamp"></span><span id="pZ">等待检测…</span></div>
+        </div>
+        <div>
+          <div class="fmeta" style="margin-bottom:6px">带水印生成 · <span class="g">绿字 = 绿名单偏好</span></div>
+          <div class="term" id="wMarked" style="min-height:170px"></div>
+          <div class="verdict"><span class="lamp" id="mLamp"></span><span id="mZ">等待检测…</span></div>
+        </div>
+      </div>
+      <p style="margin-top:14px" id="wPunch" hidden>
+        原理只有一句话：<b>每一步生成时，若有两个候选字意思相近，就掷一枚被做了手脚的骰子——绿名单那面更重。</b>
+        单看一个字毫无规律；把几百个字放一起统计，「偏绿」的倾向就会从噪声里浮出来（z 分数）。
+        这就是 AI 文本的指纹：<b>看不见，但统计看得见。</b>
+      </p>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="nextbtn" id="wPlay">▶ 生成并检测</button>
+        <button class="nextbtn" id="wNext" style="display:none">去亲手攻防 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ② 玩具 ================= -->
+  <section class="layer" id="ly-toy">
+    <div class="toy">
+      <div class="ctl">
+        <div class="row"><label>提示词</label><select id="tPrompt">
+          <option value="月球土壤的主要成分是">月球土壤的主要成分是…</option>
+          <option value="深海热泉的能量来自">深海热泉的能量来自…</option>
+          <option value="望远镜观测遥远天体依靠">望远镜观测遥远天体依靠…</option>
+        </select></div>
+        <div class="row"><label>水印强度 δ</label><input type="range" id="tDelta" min="0.5" max="4" step="0.1" value="2.5"><output id="tDeltaV">2.5</output></div>
+        <div class="row"><label>绿名单 γ</label><input type="range" id="tGamma" min="0.25" max="0.75" step="0.05" value="0.5"><output id="tGammaV">0.50</output></div>
+        <div class="row"><label>长度</label><input type="range" id="tLen" min="80" max="240" step="20" value="160"><output id="tLenV">160</output></div>
+        <div class="tctrl">
+          <button class="nextbtn" id="tGo">盖章生成</button>
+          <button class="nextbtn ghost" id="tPlain">无水印对照</button>
+        </div>
+        <p style="font-size:11.5px;color:var(--tx3);line-height:1.8;margin-top:12px">
+          δ 越大水印越硬但文字越容易被带偏；γ 是每步「绿名单」占候选的比例。</p>
+        <div class="tctrl" style="margin-top:10px">
+          <button class="nextbtn ghost" id="atk10">洗水印：改写 10%</button>
+          <button class="nextbtn ghost" id="atk30">改写 30%</button>
+          <button class="nextbtn ghost" id="atkDel">删 20% 字</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>侦查现场 <span class="hl" style="font-family:var(--mono);font-size:12px" id="tMeta"></span></h3>
+        <div class="term" id="tOut" style="min-height:170px"></div>
+        <div class="zwrap">
+          <svg id="tGauge" viewBox="0 0 120 78" width="120" height="78"></svg>
+          <div class="dres">
+            <div class="kv"><span>绿字占比</span><b id="tFrac">—</b></div>
+            <div class="kv"><span>样本数 n</span><b id="tN">—</b></div>
+            <div class="kv"><span>状态</span><b id="tState">—</b></div>
+          </div>
+        </div>
+        <div class="verdict"><span class="lamp" id="tLamp"></span><span id="tVerdict">先「盖章生成」一段文本。</span></div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz" id="quizToy" style="display:none">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts"></div>
+      <div class="res" id="quizRes"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </section>
+
+  <!-- ================= ③ 硬核 ================= -->
+  <section class="layer" id="ly-hard">
+    <div class="hard2">
+      <div class="ctl">
+        <div class="metric"><span>水印强度 δ</span><b id="hDelta">2.5</b></div>
+        <div class="metric"><span>绿名单 γ</span><b id="hGamma">0.50</b></div>
+        <div class="metric"><span>每档试验次数</span><b>24</b></div>
+        <div class="metric"><span>无水印误报率</span><b id="hFp">—</b></div>
+        <div class="metric"><span>最低可靠长度</span><b id="hMinLen">—</b></div>
+        <div class="pbar"><i id="hProg"></i></div>
+        <p style="font-size:11px;color:var(--tx3);line-height:1.8;margin-top:10px" id="hProgTxt">
+          判定阈值 z ≥ 4（单侧 p ≈ 3×10⁻⁵）。「可靠长度」= 检出率 ≥ 90% 的最短文本。</p>
+        <div class="tctrl" style="margin-top:12px">
+          <button class="nextbtn" id="hGo">▶ 开始扫描</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h3>多长的文本才<span class="hl">够得上一次指控</span>？</h3>
+        <svg id="hChart" viewBox="0 0 700 320" style="width:100%;display:block"></svg>
+        <div class="legend">
+          <span><i style="background:var(--gn)"></i>带水印检出率</span>
+          <span><i style="background:#9d9486"></i>无水印误报率</span>
+        </div>
+        <table class="wmtbl" id="hTbl">
+          <tr><th>文本长度</th><th>检出率</th><th>误报率</th><th>平均 z（带水印）</th></tr>
+        </table>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="card quiz">
+      <h3>30 秒通关题</h3>
+      <p id="quizQ2" style="font-size:13.5px;color:var(--tx)"></p>
+      <div id="quizOpts2"></div>
+      <div class="res" id="quizRes2"><span class="lamp"></span><span></span></div>
+      <div class="confetti" id="confetti2"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI 失效博物馆 · 展品 05 —— 方案：Kirchenbauer 绿/红名单（字符版），与展品 03 共用同一引擎。</span>
+    <a href="index.html">回博物馆看图鉴 →</a>
+  </footer>
+</div>

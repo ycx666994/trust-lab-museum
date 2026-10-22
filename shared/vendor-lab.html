@@ -1,0 +1,12 @@
+<!-- tl-vendor-lab v1：收编实验室页的两个必要修复（不碰配色——实验室保持暗色，与亮色博物馆区分）
+     由 build.sh 注入 </head> 之前 -->
+<style id="tl-vendor-lab">
+/* 入场动画（.rv）靠 IntersectionObserver 加 .in，在 vendor-shell 的固定视口外壳里
+   观测时机不稳，会停在 opacity:0 让正文整块不可见 → 强制可见，动画退化为无 */
+.rv,.rv.in{opacity:1 !important;transform:none !important}
+
+/* 外壳兜底：若没有任何 section 被标 .on（外壳脚本挑主容器失败时会这样），
+   亮出第一节，避免整页空白 */
+.vsh-root:not(:has(>section.on))>section:first-of-type{display:block !important;
+  flex:1 1 auto !important;min-height:0 !important;overflow-y:auto !important}
+</style>

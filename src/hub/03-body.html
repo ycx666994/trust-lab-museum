@@ -1,0 +1,110 @@
+<body>
+<div id="bgStage"></div>
+<div class="app">
+  <!-- ============ 顶栏 ============ -->
+  <header class="bar">
+    <div class="logo">🏛 AI 失效<em>博物馆</em></div>
+    <div class="mdash">
+      <svg class="ring" width="30" height="30" viewBox="0 0 30 30" id="ring"></svg>
+      <div><b id="dashN">0/8</b><br><span>已识破</span></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="barbtn" id="tourBtn">🎬 自动导览</button>
+    <button class="barbtn" id="randBtn" title="从未识破的展品里随机抽一件">🎲 随机抽考</button>
+    <button class="barbtn" id="guideBtn" title="切换讲解导游"><span id="guideBtnFace">🤖</span> <span id="guideBtnName">小误</span></button>
+    <button class="barbtn" id="bgBtn" title="换一座厅堂（12 种博物馆氛围）">🎨 厅堂</button>
+    <button class="barbtn" id="cmdBtn">🔍 搜索 <kbd>⌘K</kbd></button>
+    <button class="barbtn" id="sndBtn" title="音效开关">🔊</button>
+  </header>
+
+  <!-- ============ 主舞台 + 右栏 ============ -->
+  <div class="main">
+    <div class="stage" id="stage">
+      <div class="floor"></div>
+      <div class="vig"></div>
+      <div class="spot" id="spot"></div>
+
+      <div class="plaque" id="bait" title="…真的吗？">
+        <b>馆内公告</b><span class="seal">可信</span><br>
+        据权威统计，<b>95% 的 AI 模型是可靠的</b>。请放心参观。
+        <div class="rev" id="baitRev">⚠️ 等一下——「95% 可靠」没有出处、没有样本、语气自信。你在 01 展区学过的那种东西。<b>包括本公告。</b></div>
+      </div>
+
+      <!-- 场馆地图（07-map.js 挂载 #mapwrap） -->
+    </div>
+
+    <aside class="side">
+      <div class="guide">
+        <div class="gh">
+          <div class="face" id="gFace">🤖</div>
+          <div class="who" id="gWho">馆长 · 小误（自己就会出错的模型）</div>
+        </div>
+        <div class="gtabs" id="gtabs"></div>
+        <div class="say"><span id="sayTxt"></span><span class="caret" id="sayCaret"></span></div>
+      </div>
+      <div class="shelfsec">
+        <div class="ssh"><h3>失效图鉴</h3><span id="achN" title="成就徽章">🏅 0</span><span id="shelfN">0 / 8 张</span></div>
+        <div class="shelf" id="shelf"></div>
+      </div>
+      <div class="dashsec">
+        <svg class="ring" viewBox="0 0 56 56" id="ring2"></svg>
+        <div class="dt"><b id="dashN2">0 / 8</b>识破全部 8 种失效，领取审计员证书</div>
+        <button class="certbtn" id="certBtn" disabled>领证书</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============ 底部条 ============ -->
+  <footer class="strip">
+    <span>三展区 · 八展品 · 三层门槛（故事→玩具→硬核）</span>
+    <div class="spacer"></div>
+    <span class="khint"><kbd>⌘K</kbd> 搜索 · <kbd>Esc</kbd> 关闭弹层 · <kbd>Esc</kbd> 出舱室</span> ·
+    <a id="benchLink">引擎试车台</a> ·
+    <a id="devLink">策展模式</a> ·
+    <a id="resetLink">重置进度</a>
+  </footer>
+</div>
+
+<!-- 展品全屏舱室（iframe） -->
+<div class="room" id="room">
+  <div class="rhead">
+    <button class="back" id="roomBack">← 回大厅（Esc）</button>
+    <h2 id="roomTitle">—</h2>
+    <span class="rone" id="roomOne"></span>
+  </div>
+  <iframe id="roomFrame" title="展品" allow="fullscreen" allowfullscreen></iframe>
+</div>
+
+<!-- 命令面板 -->
+<div class="cmdwrap" id="cmdWrap">
+  <div class="cmd">
+    <button class="xclose" data-close="cmdWrap" title="关闭（Esc）">✕</button>
+    <input id="cmdInput" placeholder="搜索展品 / 展区 / 动作…（↑↓ 选择，Enter 打开，Esc 关闭）">
+    <div class="results" id="cmdResults"></div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toasts" id="toasts"></div>
+
+<!-- 背景选择 -->
+<div class="scrim" id="bgScrim">
+  <div class="bgpanel">
+    <button class="xclose" data-close="bgScrim" title="关闭（Esc）">✕</button>
+    <div class="bh"><h2>🎨 选择厅堂氛围</h2><span>12 座手工调制的博物馆厅堂——金碧辉煌、古典穹顶、复古画廊……点击即换，随时可回「馆内原色」</span></div>
+    <div class="bggrid" id="bgGrid"></div>
+  </div>
+</div>
+
+<!-- 证书 -->
+<div class="scrim" id="certScrim">
+  <div class="cert">
+    <button class="xclose" data-close="certScrim" title="关闭（Esc）">✕</button>
+    <div class="cn">CERTIFICATE OF AUDIT</div>
+    <h2>可信 AI 审计员</h2>
+    <div class="line">兹证明持证人已在本馆<b>识破全部 8 种失效模式</b>，<br>
+      并理解一个道理：可靠性不是状态，而是需要持续审计的过程。</div>
+    <div class="sig" id="certDate"></div>
+    <div style="margin-top:18px"><button class="certbtn" id="certClose" style="border-color:rgba(87,199,255,.4);background:rgba(87,199,255,.1);color:var(--cy)">收下证书（截图留念）</button></div>
+  </div>
+</div>
