@@ -15,7 +15,20 @@
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   background-image:radial-gradient(ellipse 1100px 620px at 50% -120px,rgba(14,127,156,.09),transparent 70%),radial-gradient(ellipse 900px 500px at 50% 118%,rgba(176,116,28,.07),transparent 70%)}
-.app{height:100dvh;display:grid;grid-template-rows:56px 1fr 40px;overflow:hidden}
+.app{height:100dvh;display:grid;grid-template-rows:auto 56px 1fr 40px;overflow:hidden}
+/* ============ 迁移提示条（归档版专用） ============ */
+.migrate{display:flex;align-items:center;gap:10px;padding:0 18px;height:38px;min-width:0;
+  background:linear-gradient(90deg,rgba(14,127,156,.10),rgba(176,116,28,.07));
+  border-bottom:1px solid var(--line);font-size:12px;color:var(--tx2);z-index:31}
+.migrate b{color:var(--tx);font-weight:700}
+.migrate .mdot{width:6px;height:6px;border-radius:50%;background:var(--cy);box-shadow:0 0 0 3px rgba(14,127,156,.16);flex:none}
+.migrate span{min-width:0}
+.migrate a{margin-left:auto;color:var(--cy);text-decoration:none;font-weight:600;white-space:nowrap;flex:none;
+  border:1px solid rgba(14,127,156,.32);border-radius:6px;padding:3px 10px;background:rgba(255,253,248,.7);transition:all .15s}
+.migrate a:hover{background:var(--cy);color:#fff;border-color:var(--cy)}
+@media(max-width:680px){.migrate{display:block;height:auto;padding:8px 12px;font-size:11px;line-height:1.55}
+  .migrate .mdot{display:none}
+  .migrate a{display:inline-block;margin:6px 0 0}}
 /* ============ 顶栏 ============ */
 .bar{display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--line);background:rgba(255,253,248,.84);backdrop-filter:blur(10px);z-index:30;box-shadow:0 1px 0 rgba(120,105,80,.06)}
 .bar .logo{font-size:16px;font-weight:800;letter-spacing:1px;white-space:nowrap}
@@ -340,6 +353,12 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"P
 <body>
 <div id="bgStage"></div>
 <div class="app">
+  <!-- ============ 迁移提示（本仓库已归档） ============ -->
+  <div class="migrate">
+    <span class="mdot"></span>
+    <span>本馆已并入 <b>杨城 · Yang-City</b>，成为其中的「第一馆」。此处为 2026-10-31 的归档快照，不再更新。</span>
+    <a href="https://ycx666994.github.io/Yang-City/" target="_blank" rel="noopener">前往杨城 →</a>
+  </div>
   <!-- ============ 顶栏 ============ -->
   <header class="bar">
     <div class="logo">🏛 AI 失效<em>博物馆</em></div>
